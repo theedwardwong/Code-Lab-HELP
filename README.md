@@ -42,7 +42,7 @@ An educational web application designed to support the teaching and learning of 
    ```bash
    git clone https://github.com/theedwardwong/Code-Lab-HELP.git
 
-Set Up Database:
+3. **Set Up Database**:
 
 Open phpMyAdmin from the XAMPP Control Panel.
 
@@ -50,35 +50,26 @@ Create a new database named codelab_db.
 
 Import the provided codelab_db.sql file from the project’s database folder.
 
-Configure the Project:
+4. **Configure the Project**:
 
 Move the project folder into your htdocs directory (inside your XAMPP installation).
 
 Update your PHP configuration file (e.g., config.php) with the correct database credentials.
 
-Start the Server:
+5. **Start the Server**:
 
 Start Apache and MySQL from the XAMPP Control Panel.
 
+### Open your browser and go to: http://localhost/Code-Lab-HELP/
 
 ---
 ## Usage
-Students: Browse tutorials and track learning progress.
-Instructors: (Planned) Assign exercises and provide feedback.
-Admin: Manage user registration and system settings.
-...
 
-Open your browser and go to:
-```markdown
-Open your browser and go to:
-```bash
-http://localhost/Code-Lab-HELP/
+**Students:** Browse tutorials and track learning progress.  
+**Instructors (Planned):** Assign exercises and provide feedback.  
+**Admin:** Manage user registration and system settings.
 
-Database
-The system is powered by a MySQL database named codelab_db.
-Ensure that you import the correct schema and check your connection settings in config.php.
-
-
+---
 
 
 
