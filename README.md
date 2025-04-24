@@ -60,6 +60,26 @@ Start the Server:
 
 Start Apache and MySQL from the XAMPP Control Panel.
 
+
+---
+## Usage
+Students: Browse tutorials and track learning progress.
+Instructors: (Planned) Assign exercises and provide feedback.
+Admin: Manage user registration and system settings.
+...
+
 Open your browser and go to:
-   ```bash
-   http://localhost/Code-Lab-HELP/
+```markdown
+Open your browser and go to:
+```bash
+http://localhost/Code-Lab-HELP/
+
+Database
+The system is powered by a MySQL database named codelab_db.
+Ensure that you import the correct schema and check your connection settings in config.php.
+
+
+
+
+
+
