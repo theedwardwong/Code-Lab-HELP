@@ -44,21 +44,21 @@ An educational web application designed to support the teaching and learning of 
 
 3. **Set Up Database**:
 
-Open phpMyAdmin from the XAMPP Control Panel.
+- Open phpMyAdmin from the XAMPP Control Panel.
 
-Create a new database named codelab@HELP.
+- Create a new database named codelab@HELP.
 
-Import the provided codelab_help.sql file from the project’s database folder.
+- Import the provided codelab_help.sql file from the project’s database folder.
 
 4. **Configure the Project**:
 
-Move the project folder into your htdocs directory (inside your XAMPP installation).
+- Move the project folder into your htdocs directory (inside your XAMPP installation).
 
-Update your PHP configuration file (e.g., config.php) with the correct database credentials.
+- Update your PHP configuration file (e.g., config.php) with the correct database credentials.
 
 5. **Start the Server**:
 
-Start Apache and MySQL from the XAMPP Control Panel.
+- Start Apache and MySQL from the XAMPP Control Panel.
 
 ### Open your browser and go to: http://localhost/Code-Lab-HELP/
 
