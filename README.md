@@ -46,9 +46,9 @@ An educational web application designed to support the teaching and learning of 
 
 Open phpMyAdmin from the XAMPP Control Panel.
 
-Create a new database named codelab_db.
+Create a new database named codelab@HELP.
 
-Import the provided codelab_db.sql file from the project’s database folder.
+Import the provided codelab_help.sql file from the project’s database folder.
 
 4. **Configure the Project**:
 
