@@ -17,7 +17,7 @@ An educational web application designed to support the teaching and learning of 
 - **Interactive Coding Exercises (Upcoming in Iteration 2):**  
   Visual-based code editors with real-time feedback (to be implemented).
 
-- **Progress Tracking (Upcoming):**  
+- **Progress Tracking (Upcoming in Iteration 2):**  
   Students can monitor learning milestones and completed exercises.
 
 - **Instructor Module (Upcoming):**  
