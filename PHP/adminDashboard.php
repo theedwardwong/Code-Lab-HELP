@@ -1,132 +1,161 @@
+<?php
+session_start();
+
+// Security: Check if user is logged in and is an admin
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
+    header("Location: login.php");
+    exit();
+}
+
+$admin_name = $_SESSION['full_name'];
+?>
 <!DOCTYPE html>
 <html lang="en">
-<style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Dashboard - Code Lab @ HELP</title>
+  <style>
     body {
-    margin: 0;
-    font-family: 'Segoe UI', sans-serif;
-    background-color: #2e3f54;
-    color: white;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #2e3f54;
+      color: white;
     }
 
     .navbar {
-    background-color: #111;
-    padding: 1rem 2rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+      background-color: #111;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .logo {
-    color: white;
-    font-weight: bold;
-    font-size: 1.2rem;
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+
+    .logo a {
+      color: white;
+      text-decoration: none;
+    }
+
+    .logo a:hover {
+      text-decoration: underline;
     }
 
     .nav-links {
-    list-style: none;
-    display: flex;
-    gap: 1.5rem;
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+      margin: 0;
+      padding: 0;
     }
 
     .nav-links li a {
-    color: white;
-    text-decoration: none;
+      color: white;
+      text-decoration: none;
     }
 
     .nav-icons {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
     }
 
     .icon {
-    font-size: 1.2rem;
+      font-size: 1.2rem;
     }
 
     .username {
-    font-weight: bold;
+      font-weight: bold;
     }
 
     .logout-btn {
-    background-color: #2e3f54;
-    color: white;
-    border: none;
-    padding: 0.4rem 1rem;
-    border-radius: 5px;
-    cursor: pointer;
+      background-color: #2e3f54;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
     }
 
     .dashboard-container {
-    padding: 2rem;
+      padding: 2rem;
     }
 
     .dashboard-container h2 {
-    font-size: 2rem;
-    margin-bottom: 1.5rem;
+      font-size: 2rem;
+      margin-bottom: 1.5rem;
     }
 
     .stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    margin-bottom: 2rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
     }
 
     .stat-box {
-    background-color: #2e3f54;
-    border: 1px solid #ccc;
-    padding: 1rem;
-    border-radius: 10px;
-    text-align: center;
-    min-width: 130px;
+      background-color: #1a2332;
+      border: 1px solid #444;
+      padding: 1.5rem;
+      border-radius: 10px;
+      text-align: center;
+      min-width: 150px;
+      font-size: 2rem;
+      font-weight: bold;
     }
 
     .stat-box span {
-    display: block;
-    font-size: 0.9rem;
-    color: #ccc;
-    margin-top: 0.3rem;
+      display: block;
+      font-size: 0.9rem;
+      color: #ccc;
+      margin-top: 0.5rem;
+      font-weight: normal;
     }
 
     .actions {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
     }
 
     .action-box {
-    background-color: #111b25;
-    padding: 1.5rem;
-    border-radius: 1rem;
-    flex: 1;
-    min-width: 300px;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
+      background-color: #111b25;
+      padding: 1.5rem;
+      border-radius: 1rem;
+      flex: 1;
+      min-width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
     }
 
     .action-item {
-    background-color: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.8rem;
-    border-radius: 0.5rem;
-    transition: background 0.2s;
+      background-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.8rem;
+      border-radius: 0.5rem;
+      transition: background 0.2s;
     }
 
     .action-item:hover {
-    background-color: #1d2d40;
-    cursor: pointer;
+      background-color: #1d2d40;
+      cursor: pointer;
     }
 
     .action-item .icon {
-    font-size: 1.8rem;
-    margin-right: 1rem;
+      font-size: 1.8rem;
+      margin-right: 1rem;
     }
 
     .arrow {
-    font-size: 1.5rem;
+      font-size: 1.5rem;
     }
 
     .action-item-link {
@@ -140,27 +169,22 @@
       transition: background-color 0.3s;
       cursor: pointer;
     }
-    .logo a:hover {
-    text-decoration: underline;
+
+    .action-item h4 {
+      margin: 0 0 0.3rem 0;
     }
-</style>
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin Dashboard</title>
-  <link rel="stylesheet" href="admin-dashboard.css" />
+
+    .action-item p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #aaa;
+    }
+  </style>
 </head>
 <body>
-
-  <!-- Navbar (preserved structure) -->
   <nav class="navbar">
     <div class="logo">
-        <a href="<?php
-            echo ($_SESSION['role'] === 'student') ? 'studentDashboard.php' :
-                (($_SESSION['role'] === 'instructor') ? 'instructorDashboard.php' : '#');
-        ?>" style="color: white; text-decoration: none;">
-            Code Lab @ HELP
-        </a>
+      <a href="adminDashboard.php">Code Lab @ HELP</a>
     </div>
     <ul class="nav-links">
       <li><a href="adminDashboard.php">Dashboard</a></li>
@@ -172,7 +196,7 @@
       <span class="icon">🔔</span>
       <span class="icon">⚙️</span>
       <span class="icon">👤</span>
-      <span class="username">John Smith</span>
+      <span class="username"><?php echo htmlspecialchars($admin_name); ?></span>
       <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
     </div>
   </nav>
@@ -193,7 +217,7 @@
       <div class="action-box">
         <a href="registration.php" class="action-item-link">
           <div class="action-item">
-            <div class="icon">🧍</div>
+            <div class="icon">🧑</div>
             <div>
               <h4>Register New User</h4>
               <p>Register new users to the platform</p>
@@ -253,7 +277,7 @@
             <div class="icon">⚙️</div>
             <div>
               <h4>Organization Settings</h4>
-              <p>Manage your organization’s settings</p>
+              <p>Manage your organization's settings</p>
             </div>
             <span class="arrow">→</span>
           </div>
@@ -261,13 +285,13 @@
       </div>
     </section>
   </main>
-  <script>
-  function confirmLogout() {
-    if (confirm("Are you sure you want to log out?")) {
-      window.location.href = 'login.php';
-    }
-  }
-  </script>
 
+  <script>
+    function confirmLogout() {
+      if (confirm("Are you sure you want to log out?")) {
+        window.location.href = 'logout.php';
+      }
+    }
+  </script>
 </body>
 </html>
