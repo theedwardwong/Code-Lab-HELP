@@ -371,6 +371,7 @@ $completion_percentage = $total_lessons > 0 ?
             <li><a href="studentDashboard.php">Dashboard</a></li>
             <li><a href="browser.php">Browse</a></li>
             <li><a href="exercises.php">Exercises</a></li>
+            <li><a href="my_assignments.php">My Assignments</a></li>
             <li><a href="progress.php">Progress</a></li>
         </ul>
         <div class="nav-icons">

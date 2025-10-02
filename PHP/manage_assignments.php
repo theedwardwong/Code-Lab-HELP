@@ -410,6 +410,12 @@ $assignments = $assignments_stmt->get_result();
                             <span>Max Attempts: <?php echo $assignment['max_attempts'] > 0 ? $assignment['max_attempts'] : 'Unlimited'; ?></span>
                             <span>Created: <?php echo date('M j, Y', strtotime($assignment['created_at'])); ?></span>
                         </div>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #2e3f54;">
+                            <a href="assignment_analytics.php?id=<?php echo $assignment['id']; ?>" 
+                               style="color: #358efb; text-decoration: none; font-weight: bold;">
+                                View Detailed Analytics →
+                            </a>
+                        </div>
                     </div>
                 <?php endwhile; ?>
             <?php else: ?>

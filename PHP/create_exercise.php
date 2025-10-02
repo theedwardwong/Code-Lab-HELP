@@ -25,7 +25,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $instructions = trim($_POST['instructions']);
     $starter_code = trim($_POST['starter_code']);
     $solution_code = trim($_POST['solution_code']);
-    $hints = trim($_POST['hints']);
+    $hints_raw = trim($_POST['hints']);
+    if (!empty($hints_raw)) {
+        // Split by newlines and create JSON array
+        $hints_array = array_filter(array_map('trim', explode("\n", $hints_raw)));
+        $hints = !empty($hints_array) ? json_encode($hints_array) : null;
+    } else {
+        $hints = null;
+    }
     $points = intval($_POST['points']);
     $difficulty = $_POST['difficulty'];
 
@@ -39,9 +46,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $stmt->bind_param(
-            "issssssss", 
-            $lesson_id, $title, $description, $instructions, 
-            $starter_code, $solution_code, $hints, $points, $difficulty
+            "issssssis",  // 9 characters: i-s-s-s-s-s-s-i-s
+            $lesson_id,      // 1. integer
+            $title,          // 2. string
+            $description,    // 3. string
+            $instructions,   // 4. string
+            $starter_code,   // 5. string
+            $solution_code,  // 6. string
+            $hints,          // 7. string
+            $points,         // 8. integer
+            $difficulty      // 9. string
         );
 
         if ($stmt->execute()) {

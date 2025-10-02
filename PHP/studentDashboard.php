@@ -185,12 +185,13 @@ $first_name = explode(' ', $student_name)[0];
     <div class="logo">
       <a href="studentDashboard.php">Code Lab @ HELP</a>
     </div>
-    <ul class="nav-links">
+  <ul class="nav-links">
       <li><a href="studentDashboard.php">Dashboard</a></li>
       <li><a href="browser.php">Browse</a></li>
       <li><a href="exercises.php">Exercises</a></li>
+      <li><a href="my_assignments.php">My Assignments</a></li>
       <li><a href="progress.php">Progress</a></li>
-    </ul>
+  </ul>
     <div class="nav-icons">
       <span class="icon">🔔</span>
       <span class="icon">⚙️</span>
@@ -206,10 +207,10 @@ $first_name = explode(' ', $student_name)[0];
       <div class="welcome-text">
         <h1>Welcome back, <?php echo htmlspecialchars($first_name); ?>!</h1>
         <p>Keep learning with your personalized study plan.</p>
-        <div class="search-bar">
-          <input type="text" placeholder="Search for lessons, tutorials, and more" />
-          <button>Search</button>
-        </div>
+        <form action="search.php" method="GET" class="search-bar">
+          <input type="text" name="q" placeholder="Search for lessons, tutorials, and more" required />
+          <button type="submit">Search</button>
+        </form>
       </div>
     </div>
 

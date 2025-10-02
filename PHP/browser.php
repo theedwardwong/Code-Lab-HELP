@@ -1,5 +1,21 @@
 <?php 
 session_start(); 
+include 'db_connect.php'; 
+
+// Security: Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: login.php");
+    exit();
+}
+
+// Get user information
+$user_name = $_SESSION['full_name'];
+$user_role = $_SESSION['role'];
+
+// Get lessons from database
+$lessons_query = "SELECT id, title, category FROM lessons WHERE is_published = 1 ORDER BY order_index LIMIT 3";
+$lessons_result = $conn->query($lessons_query);
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -134,6 +150,10 @@ session_start();
     .lesson-card:hover {
     transform: scale(1.05);
     }
+    .logo a {
+      color: white;
+      text-decoration: none;
+    }
     .logo a:hover {
     text-decoration: underline;
     }
@@ -142,16 +162,16 @@ session_start();
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Browse lessons and tutorials</title>
-  <link rel="stylesheet" href="browse-lessons.css" />
 </head>
 <body>
 
-  <!-- Navbar (unchanged, preserved!) -->
+  <!-- Navbar -->
   <nav class="navbar">
     <div class="logo">
         <a href="<?php
-            echo ($_SESSION['role'] === 'student') ? 'studentDashboard.php' :
-                (($_SESSION['role'] === 'instructor') ? 'instructorDashboard.php' : '#');
+            echo ($user_role === 'student') ? 'studentDashboard.php' :
+                (($user_role === 'instructor') ? 'instructorDashboard.php' : 
+                (($user_role === 'admin') ? 'adminDashboard.php' : '#'));
         ?>" style="color: white; text-decoration: none;">
             Code Lab @ HELP
         </a>
@@ -159,8 +179,9 @@ session_start();
     <ul class="nav-links">
         <li>
             <a href="<?php
-                echo ($_SESSION['role'] === 'student') ? 'studentDashboard.php' :
-                    (($_SESSION['role'] === 'instructor') ? 'instructorDashboard.php' : '#');
+                echo ($user_role === 'student') ? 'studentDashboard.php' :
+                    (($user_role === 'instructor') ? 'instructorDashboard.php' : 
+                    (($user_role === 'admin') ? 'adminDashboard.php' : '#'));
             ?>">Dashboard</a>
         </li>
       <li><a href="browser.php">Browse</a></li>
@@ -171,7 +192,7 @@ session_start();
       <span class="icon">🔔</span>
       <span class="icon">⚙️</span>
       <span class="icon">👤</span>
-      <span class="username">John Smith</span>
+      <span class="username"><?php echo htmlspecialchars($user_name); ?></span>
       <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
     </div>
   </nav>
@@ -187,21 +208,31 @@ session_start();
     </div>
 
     <h3 class="section-title">Newly Added</h3>
+    <?php
+    // Get lessons from database
+    $lessons_query = "SELECT id, title, category FROM lessons WHERE is_published = 1 ORDER BY order_index LIMIT 3";
+    $lessons_result = $conn->query($lessons_query);
+
+    // Map lesson categories to images
+    $images = [
+        'HTML Basics' => 'https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg',
+        'CSS Styling' => 'https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg',
+        'JavaScript Fundamentals' => 'https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png'
+    ];
+    $default_image = 'https://via.placeholder.com/150?text=Lesson';
+    ?>
+
     <div class="lessons-grid">
-        <div class="lesson-card" data-category="frontend" onclick="window.location.href='exercises.php'">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg" alt="HTML5">
-          <p>HTML Lessons</p>
+    <?php while ($lesson = $lessons_result->fetch_assoc()): ?>
+        <div class="lesson-card" data-category="<?php echo $lesson['category']; ?>" 
+             onclick="window.location.href='exercises.php?lesson=<?php echo $lesson['id']; ?>'">
+            <img src="<?php echo isset($images[$lesson['title']]) ? $images[$lesson['title']] : $default_image; ?>" 
+                 alt="<?php echo htmlspecialchars($lesson['title']); ?>"
+                 onerror="this.src='<?php echo $default_image; ?>'">
+            <p><?php echo htmlspecialchars($lesson['title']); ?></p>
         </div>
-        <div class="lesson-card" data-category="frontend" onclick="window.location.href='exercises.php'">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg" alt="CSS3">
-          <p>CSS Lessons</p>
-        </div>
-        <div class="lesson-card" data-category="backend" onclick="window.location.href='exercises.php'">
-          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png" alt="JavaScript">
-          <p>JavaScript Lessons</p>
-        </div>
-      </div>
-    </div>
+    <?php endwhile; ?>
+</div>
   </main>
 
   <script>

@@ -253,10 +253,10 @@ $first_name = explode(' ', $instructor_name)[0];
       <div class="welcome-text">
         <h1>Welcome back, <?php echo htmlspecialchars($first_name); ?>!</h1>
         <p>Manage your courses and track student progress.</p>
-        <div class="search-bar">
-          <input type="text" placeholder="Search for students, exercises, and more" />
-          <button>Search</button>
-        </div>
+        <form action="search.php" method="GET" class="search-bar">
+          <input type="text" name="q" placeholder="Search for lessons, tutorials, and more" required />
+          <button type="submit">Search</button>
+        </form>
       </div>
     </div>
 
