@@ -14,17 +14,36 @@ An educational web application designed to support the teaching and learning of 
 - **Browse Lessons and Tutorials:**  
   Students can explore categorized lessons in frontend and backend development.
 
-- **Interactive Coding Exercises (Upcoming in Iteration 2):**  
+- **Interactive Coding Exercises (Completed in Iteration 2, still need to improve):**  
   Visual-based code editors with real-time feedback (to be implemented).
 
-- **Progress Tracking (Upcoming in Iteration 2):**  
+- **Progress Tracking (Completed in Iteration 2, still need to improve):** 
   Students can monitor learning milestones and completed exercises.
 
-- **Instructor Module (Upcoming):**  
-  Instructors can assign exercises and review student performance.
+- **Create and Assign Coding Exercises (🚧 In Progress – Iteration 3):** 
+  Instructors can create coding tasks with objectives and assign them to students.
+
+- **Monitor Student Performance & Submissions (🚧 In Progress – Iteration 3):** 
+  Instructors can review student submissions, track outcomes, and identify trends.
+
+- **Provide Feedback and Hints (🚧 In Progress – Iteration 3):** 
+  Instructors can leave comments and suggestions on coding submissions.
+  
+- **Instructor Module (🚧 Iteration 3):**
+  Manage assigned exercises, view student performance, and provide feedback.
 
 - **Admin Control Panel:**  
   Manage user accounts, permissions, and system configuration.
+
+Provide Feedback and Hints (In Progress – Iteration 3):
+Instructors can leave comments and suggestions on coding submissions.
+
+Instructor Module (Iteration 3):
+Manage assigned exercises, view student performance, and provide feedback.
+
+Admin Control Panel:
+Manage user accounts, permissions, and system configuration.
+
 
 ## Technology Stack
 
@@ -66,10 +85,7 @@ An educational web application designed to support the teaching and learning of 
 ## Usage
 
 **Students:** Browse tutorials and track learning progress.  
-**Instructors (Planned):** Assign exercises and provide feedback.  
+**Instructors:** Assign exercises and provide feedback.  
 **Admin:** Manage user registration and system settings.
 
 ---
-
-
-Test123
