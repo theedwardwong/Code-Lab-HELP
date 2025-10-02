@@ -1,13 +1,36 @@
 <?php
 session_start();
+include 'db_connect.php';
 
-// Security: Check if user is logged in and is an admin
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
 $admin_name = $_SESSION['full_name'];
+
+// Get real statistics from database
+$stats = [];
+
+// Total Users
+$result = $conn->query("SELECT COUNT(*) as count FROM users");
+$stats['total_users'] = $result->fetch_assoc()['count'];
+
+// Total Students
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'student'");
+$stats['total_students'] = $result->fetch_assoc()['count'];
+
+// New Users (last 7 days)
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+$stats['new_users'] = $result->fetch_assoc()['count'];
+
+// Total Instructors
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'instructor'");
+$stats['total_instructors'] = $result->fetch_assoc()['count'];
+
+// New Instructors (last 7 days)
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'instructor' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+$stats['new_instructors'] = $result->fetch_assoc()['count'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -100,19 +123,26 @@ $admin_name = $_SESSION['full_name'];
 
     .stat-box {
       background-color: #1a2332;
-      border: 1px solid #444;
+      border: 2px solid #358efb;
       padding: 1.5rem;
-      border-radius: 10px;
+      border-radius: 12px;
       text-align: center;
       min-width: 150px;
-      font-size: 2rem;
+      font-size: 2.5rem;
       font-weight: bold;
+      color: #358efb;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+
+    .stat-box:hover {
+      transform: translateY(-5px);
+      border-color: #4caf50;
     }
 
     .stat-box span {
       display: block;
       font-size: 0.9rem;
-      color: #ccc;
+      color: #aaa;
       margin-top: 0.5rem;
       font-weight: normal;
     }
@@ -124,38 +154,33 @@ $admin_name = $_SESSION['full_name'];
     }
 
     .action-box {
-      background-color: #111b25;
+      background-color: #1a2332;
       padding: 1.5rem;
-      border-radius: 1rem;
+      border-radius: 12px;
       flex: 1;
       min-width: 300px;
       display: flex;
       flex-direction: column;
       gap: 1rem;
+      border: 1px solid #2e3f54;
     }
 
     .action-item {
-      background-color: transparent;
+      background-color: #2e3f54;
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0.8rem;
-      border-radius: 0.5rem;
-      transition: background 0.2s;
+      padding: 1.2rem;
+      border-radius: 8px;
+      transition: all 0.3s;
+      border: 2px solid transparent;
     }
 
     .action-item:hover {
-      background-color: #1d2d40;
+      background-color: #3a4d64;
+      border-color: #358efb;
+      transform: translateX(5px);
       cursor: pointer;
-    }
-
-    .action-item .icon {
-      font-size: 1.8rem;
-      margin-right: 1rem;
-    }
-
-    .arrow {
-      font-size: 1.5rem;
     }
 
     .action-item-link {
@@ -164,20 +189,37 @@ $admin_name = $_SESSION['full_name'];
       display: block;
     }
 
-    .action-item-link:hover .action-item {
-      background-color: #1c2d3e;
-      transition: background-color 0.3s;
-      cursor: pointer;
-    }
-
     .action-item h4 {
       margin: 0 0 0.3rem 0;
+      color: #358efb;
+      font-size: 1.1rem;
     }
 
     .action-item p {
       margin: 0;
-      font-size: 0.9rem;
-      color: #aaa;
+      font-size: 0.85rem;
+      color: #ccc;
+    }
+
+    .action-item .icon {
+      font-size: 2rem;
+      margin-right: 1rem;
+      filter: grayscale(0%);
+      transition: filter 0.3s;
+    }
+
+    .action-item:hover .icon {
+      filter: brightness(1.3);
+    }
+
+    .arrow {
+      font-size: 1.5rem;
+      color: #358efb;
+      transition: transform 0.3s;
+    }
+
+    .action-item:hover .arrow {
+      transform: translateX(5px);
     }
   </style>
 </head>
@@ -202,15 +244,15 @@ $admin_name = $_SESSION['full_name'];
   </nav>
 
   <main class="dashboard-container">
-    <h2>Dashboard</h2>
+    <h2>Admin Dashboard</h2>
+    <p style="color: #aaa; margin-bottom: 2rem;">Manage users, courses, and system settings</p>
 
     <div class="stats">
-      <div class="stat-box">100<br><span>Total Users</span></div>
-      <div class="stat-box">100<br><span>Active Users</span></div>
-      <div class="stat-box">100<br><span>New Users</span></div>
-      <div class="stat-box">100<br><span>Total Instructors</span></div>
-      <div class="stat-box">100<br><span>Active Instructors</span></div>
-      <div class="stat-box">100<br><span>New Instructors</span></div>
+      <div class="stat-box"><?php echo $stats['total_users']; ?><br><span>Total Users</span></div>
+      <div class="stat-box"><?php echo $stats['total_students']; ?><br><span>Students</span></div>
+      <div class="stat-box"><?php echo $stats['new_users']; ?><br><span>New Users</span></div>
+      <div class="stat-box"><?php echo $stats['total_instructors']; ?><br><span>Instructors</span></div>
+      <div class="stat-box"><?php echo $stats['new_instructors']; ?><br><span>New Instructors</span></div>
     </div>
 
     <section class="actions">
@@ -226,7 +268,7 @@ $admin_name = $_SESSION['full_name'];
           </div>
         </a>
 
-        <a href="#" class="action-item-link">
+        <a href="create_course.php" class="action-item-link">
           <div class="action-item">
             <div class="icon">➕</div>
             <div>
@@ -237,7 +279,7 @@ $admin_name = $_SESSION['full_name'];
           </div>
         </a>
 
-        <a href="#" class="action-item-link">
+        <a href="view_courses.php" class="action-item-link">
           <div class="action-item">
             <div class="icon">📋</div>
             <div>

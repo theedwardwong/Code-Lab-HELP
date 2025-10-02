@@ -188,17 +188,18 @@ session_start();
 
     <h3 class="section-title">Newly Added</h3>
     <div class="lessons-grid">
-      <div class="lesson-card" data-category="frontend">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg" alt="HTML5">
-        <p>HTML Lessons</p>
-      </div>
-      <div class="lesson-card" data-category="frontend">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg" alt="CSS3">
-        <p>CSS Lessons</p>
-      </div>
-      <div class="lesson-card" data-category="backend">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png" alt="JavaScript">
-        <p>JavaScript Lessons</p>
+        <div class="lesson-card" data-category="frontend" onclick="window.location.href='exercises.php'">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/61/HTML5_logo_and_wordmark.svg" alt="HTML5">
+          <p>HTML Lessons</p>
+        </div>
+        <div class="lesson-card" data-category="frontend" onclick="window.location.href='exercises.php'">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/d/d5/CSS3_logo_and_wordmark.svg" alt="CSS3">
+          <p>CSS Lessons</p>
+        </div>
+        <div class="lesson-card" data-category="backend" onclick="window.location.href='exercises.php'">
+          <img src="https://upload.wikimedia.org/wikipedia/commons/6/6a/JavaScript-logo.png" alt="JavaScript">
+          <p>JavaScript Lessons</p>
+        </div>
       </div>
     </div>
   </main>
