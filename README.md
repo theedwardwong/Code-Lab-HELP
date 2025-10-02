@@ -70,6 +70,3 @@ An educational web application designed to support the teaching and learning of 
 **Admin:** Manage user registration and system settings.
 
 ---
-
-
-Test123
