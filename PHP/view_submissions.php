@@ -33,7 +33,7 @@ if ($filter_exercise !== 'all') {
 
 $where_clause = implode(" AND ", $where_conditions);
 
-// Get all submissions
+// Get all submissions with feedback count
 $submissions_query = "
     SELECT 
         es.*,
@@ -41,7 +41,8 @@ $submissions_query = "
         e.points as max_points,
         l.title as lesson_title,
         u.full_name as student_name,
-        u.email as student_email
+        u.email as student_email,
+        (SELECT COUNT(*) FROM instructor_feedback if2 WHERE if2.submission_id = es.id) as feedback_count
     FROM exercise_submissions es
     JOIN exercises e ON e.id = es.exercise_id
     JOIN lessons l ON l.id = e.lesson_id
@@ -254,6 +255,15 @@ $stats = $conn->query($stats_query)->fetch_assoc();
             background-color: #2a72c9;
         }
 
+        .feedback-badge {
+            background-color: #4caf50;
+            color: white;
+            padding: 0.2rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            margin-left: 0.5rem;
+        }
+
         /* Modal */
         .modal {
             display: none;
@@ -278,7 +288,7 @@ $stats = $conn->query($stats_query)->fetch_assoc();
             background-color: #1a2332;
             padding: 2rem;
             border-radius: 12px;
-            max-width: 900px;
+            max-width: 1000px;
             width: 100%;
             max-height: 90vh;
             overflow-y: auto;
@@ -341,10 +351,105 @@ $stats = $conn->query($stats_query)->fetch_assoc();
             color: #358efb;
         }
 
+        /* Feedback Section */
+        .feedback-section {
+            background-color: #2e3f54;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .feedback-form textarea {
+            width: 100%;
+            min-height: 120px;
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background-color: #1a2332;
+            color: white;
+            font-family: inherit;
+            resize: vertical;
+        }
+
+        .feedback-form label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid #444;
+            background-color: #1a2332;
+            color: white;
+        }
+
+        .btn-submit-feedback {
+            background-color: #4caf50;
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+        }
+
+        .btn-submit-feedback:hover {
+            background-color: #45a049;
+        }
+
+        .previous-feedback {
+            background-color: #1a2332;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            border-left: 4px solid #358efb;
+        }
+
+        .feedback-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+
+        .feedback-text {
+            color: white;
+            line-height: 1.6;
+        }
+
         .empty-state {
             text-align: center;
             padding: 3rem;
             color: #888;
+        }
+
+        .success-message {
+            background-color: #4caf50;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
         }
     </style>
 </head>
@@ -366,7 +471,7 @@ $stats = $conn->query($stats_query)->fetch_assoc();
     <div class="container">
         <div class="page-header">
             <h1>Student Submissions</h1>
-            <p style="color: #aaa;">Review and provide feedback on student code</p>
+            <p style="color: #aaa;">Review code and provide personalized feedback</p>
         </div>
 
         <!-- Statistics -->
@@ -442,9 +547,14 @@ $stats = $conn->query($stats_query)->fetch_assoc();
                                 <td><strong><?php echo $sub['score']; ?></strong> / <?php echo $sub['max_points']; ?></td>
                                 <td><?php echo date('M j, Y g:i A', strtotime($sub['submitted_at'])); ?></td>
                                 <td>
-                                    <button class="action-btn" onclick='viewSubmission(<?php echo json_encode($sub); ?>)'>
-                                        View Code
+                                    <button class="action-btn" 
+                                            data-submission='<?php echo htmlspecialchars(json_encode($sub), ENT_QUOTES); ?>'
+                                            onclick="viewSubmissionData(this)">
+                                        View & Feedback
                                     </button>
+                                    <?php if ($sub['feedback_count'] > 0): ?>
+                                        <span class="feedback-badge"><?php echo $sub['feedback_count']; ?> feedback(s)</span>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endwhile; ?>
@@ -463,9 +573,10 @@ $stats = $conn->query($stats_query)->fetch_assoc();
     <div class="modal" id="submissionModal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Submission Details</h2>
+                <h2>Submission Details & Feedback</h2>
                 <button class="close-btn" onclick="closeModal()">&times;</button>
             </div>
+            <div id="successMessage" class="success-message"></div>
             <div id="modalBody"></div>
         </div>
     </div>
@@ -477,62 +588,152 @@ $stats = $conn->query($stats_query)->fetch_assoc();
             }
         }
 
+        function viewSubmissionData(button) {
+            const submission = JSON.parse(button.getAttribute('data-submission'));
+            viewSubmission(submission);
+        }
+
         function viewSubmission(submission) {
             const modal = document.getElementById('submissionModal');
             const modalBody = document.getElementById('modalBody');
 
             const statusClass = 'status-' + submission.status;
             
-            modalBody.innerHTML = `
-                <div class="submission-details">
-                    <div class="detail-row">
-                        <span class="detail-label">Student:</span>
-                        <span>${submission.student_name}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Exercise:</span>
-                        <span>${submission.exercise_title}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Lesson:</span>
-                        <span>${submission.lesson_title}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Status:</span>
-                        <span class="status-badge ${statusClass}">${submission.status.toUpperCase()}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Score:</span>
-                        <span>${submission.score} / ${submission.max_points} points</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Tests Passed:</span>
-                        <span>${submission.passed_tests} / ${submission.total_tests}</span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Submitted:</span>
-                        <span>${new Date(submission.submitted_at).toLocaleString()}</span>
-                    </div>
-                </div>
+            // Fetch existing feedback
+            fetch(`get_feedback.php?submission_id=${submission.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    let previousFeedbackHtml = '';
+                    if (data.success && data.feedback.length > 0) {
+                        previousFeedbackHtml = '<div class="section-title">Previous Feedback</div>';
+                        data.feedback.forEach(fb => {
+                            const fbDate = new Date(fb.created_at).toLocaleString();
+                            previousFeedbackHtml += `
+                                <div class="previous-feedback">
+                                    <div class="feedback-header">
+                                        <span><strong>${fb.instructor_name}</strong></span>
+                                        <span>${fbDate}</span>
+                                    </div>
+                                    <div class="feedback-text">${escapeHtml(fb.feedback)}</div>
+                                    ${fb.grade ? `<div style="margin-top: 0.5rem; color: #4caf50;"><strong>Manual Grade: ${fb.grade}</strong></div>` : ''}
+                                </div>
+                            `;
+                        });
+                    }
 
-                <div class="section-title">Submitted Code</div>
-                <div class="code-viewer">
-                    <pre>${escapeHtml(submission.submitted_code)}</pre>
-                </div>
+                    modalBody.innerHTML = `
+                        <div class="submission-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Student:</span>
+                                <span>${submission.student_name}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Exercise:</span>
+                                <span>${submission.exercise_title}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Lesson:</span>
+                                <span>${submission.lesson_title}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Status:</span>
+                                <span class="status-badge ${statusClass}">${submission.status.toUpperCase()}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Auto Score:</span>
+                                <span>${submission.score} / ${submission.max_points} points</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Tests Passed:</span>
+                                <span>${submission.passed_tests} / ${submission.total_tests}</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Submitted:</span>
+                                <span>${new Date(submission.submitted_at).toLocaleString()}</span>
+                            </div>
+                        </div>
 
-                ${submission.feedback ? `
-                    <div class="section-title">Feedback</div>
-                    <div style="background-color: #2e3f54; padding: 1rem; border-radius: 8px;">
-                        ${escapeHtml(submission.feedback)}
-                    </div>
-                ` : ''}
-            `;
+                        <div class="section-title">Submitted Code</div>
+                        <div class="code-viewer">
+                            <pre>${escapeHtml(submission.submitted_code)}</pre>
+                        </div>
 
-            modal.classList.add('active');
+                        ${submission.feedback ? `
+                            <div class="section-title">Auto-Generated Feedback</div>
+                            <div style="background-color: #2e3f54; padding: 1rem; border-radius: 8px;">
+                                ${escapeHtml(submission.feedback)}
+                            </div>
+                        ` : ''}
+
+                        ${previousFeedbackHtml}
+
+                        <div class="section-title">Add Your Feedback</div>
+                        <div class="feedback-section">
+                            <form class="feedback-form" onsubmit="submitFeedback(event, ${submission.id})">
+                                <div class="form-group">
+                                    <label>Your Feedback/Hints:</label>
+                                    <textarea name="feedback" placeholder="Provide personalized feedback, suggestions, or hints to help the student improve..." required></textarea>
+                                </div>
+                                <div class="form-group">
+                                    <label>Manual Grade (Optional):</label>
+                                    <input type="number" name="grade" min="0" max="${submission.max_points}" placeholder="Override auto-grade (0-${submission.max_points})">
+                                </div>
+                                <button type="submit" class="btn-submit-feedback">Submit Feedback</button>
+                            </form>
+                        </div>
+                    `;
+
+                    modal.classList.add('active');
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Failed to load previous feedback');
+                });
+        }
+
+        function submitFeedback(event, submissionId) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            formData.append('submission_id', submissionId);
+
+            fetch('add_instructor_feedback.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const successMsg = document.getElementById('successMessage');
+                    successMsg.textContent = 'Feedback submitted successfully!';
+                    successMsg.classList.add('show');
+                    
+                    // Clear form
+                    form.reset();
+                    
+                    // Hide success message after 3 seconds
+                    setTimeout(() => {
+                        successMsg.classList.remove('show');
+                    }, 3000);
+                    
+                    // Reload the modal to show new feedback
+                    setTimeout(() => {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Failed to submit feedback');
+            });
         }
 
         function closeModal() {
             document.getElementById('submissionModal').classList.remove('active');
+            document.getElementById('successMessage').classList.remove('show');
         }
 
         function escapeHtml(text) {

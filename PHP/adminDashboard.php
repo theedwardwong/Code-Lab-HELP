@@ -325,6 +325,28 @@ $stats['new_instructors'] = $result->fetch_assoc()['count'];
           </div>
         </a>
       </div>
+
+      <a href="manage_users.php" class="action-item-link">
+          <div class="action-item">
+              <div class="icon">👥</div>
+              <div>
+                  <h4>Manage Users</h4>
+                  <p>Edit, delete, or reset user passwords</p>
+              </div>
+              <span class="arrow">→</span>
+          </div>
+      </a>
+
+      <a href="system_settings.php" class="action-item-link">
+          <div class="action-item">
+              <div class="icon">⚙️</div>
+              <div>
+                  <h4>System Settings</h4>
+                  <p>Configure platform-wide settings</p>
+              </div>
+              <span class="arrow">→</span>
+          </div>
+      </a>
     </section>
   </main>
 
