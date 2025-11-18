@@ -400,7 +400,7 @@ $progress = $progress_check->get_result()->fetch_assoc();
             if (currentStep === totalSteps) {
                 nextBtn.textContent = 'Take Quiz →';
                 nextBtn.className = 'nav-btn btn-quiz';
-                nextBtn.onclick = function() { window.location.href = 'quiz_html.php'; };
+                nextBtn.onclick = function() { window.location.href = 'quiz_html_NEW.php'; };
             } else {
                 nextBtn.textContent = 'Next Step →';
                 nextBtn.className = 'nav-btn btn-next';

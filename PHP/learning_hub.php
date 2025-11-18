@@ -153,9 +153,9 @@ $overall_progress = ($total_completed / 3) * 100;
                         <?php endif; ?>
                     </div>
                     <div class="lesson-actions" style="margin-top: 1.5rem;">
-                        <a href="lesson_html.php" class="btn btn-primary">📖 Start Lesson</a>
+                        <a href="lesson_html_NEW.php" class="btn btn-primary">📖 Start Lesson</a>
                         <?php if (isset($progress_data[1])): ?>
-                            <a href="quiz_html.php" class="btn btn-secondary">📝 Take Quiz</a>
+                            <a href="quiz_html_NEW.php" class="btn btn-secondary">📝 Take Quiz</a>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -192,9 +192,9 @@ $overall_progress = ($total_completed / 3) * 100;
                     </div>
                     <div class="lesson-actions" style="margin-top: 1.5rem;">
                         <?php if ($html_passed): ?>
-                            <a href="lesson_css.php" class="btn btn-primary">📖 Start Lesson</a>
+                            <a href="lesson_css_NEW.php" class="btn btn-primary">📖 Start Lesson</a>
                             <?php if (isset($progress_data[2])): ?>
-                                <a href="quiz_css.php" class="btn btn-secondary">📝 Take Quiz</a>
+                                <a href="quiz_css_NEW.php" class="btn btn-secondary">📝 Take Quiz</a>
                             <?php endif; ?>
                         <?php else: ?>
                             <button class="btn btn-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">🔒 Locked</button>
@@ -234,9 +234,9 @@ $overall_progress = ($total_completed / 3) * 100;
                     </div>
                     <div class="lesson-actions" style="margin-top: 1.5rem;">
                         <?php if ($css_passed): ?>
-                            <a href="lesson_javascript.php" class="btn btn-primary">📖 Start Lesson</a>
+                            <a href="lesson_javascript_NEW.php" class="btn btn-primary">📖 Start Lesson</a>
                             <?php if (isset($progress_data[3])): ?>
-                                <a href="quiz_javascript.php" class="btn btn-secondary">📝 Take Quiz</a>
+                                <a href="quiz_javascript_NEW.php" class="btn btn-secondary">📝 Take Quiz</a>
                             <?php endif; ?>
                         <?php else: ?>
                             <button class="btn btn-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">🔒 Locked</button>

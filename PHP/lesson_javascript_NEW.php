@@ -8,7 +8,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
 }
 
 $student_id = $_SESSION['user_id'];
-$student_name = $_SESSION['full_name'];
 $lesson_id = 3;
 
 $progress_check = $conn->prepare("SELECT * FROM lesson_quiz_progress WHERE student_id = ? AND lesson_id = ?");
@@ -82,8 +81,9 @@ $css_passed = $css_progress && $css_progress['quiz_passed'];
         .tip-box { background-color: rgba(76, 175, 80, 0.1); border-left: 4px solid #4caf50; padding: 1.5rem; margin: 1.5rem 0; border-radius: 5px; }
 
         .interactive-demo { background-color: #0f3460; padding: 2rem; border-radius: 10px; margin: 2rem 0; text-align: center; }
-        .demo-button { background: linear-gradient(135deg, #f7971e, #ffd200); border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; color: white; transition: all 0.3s; }
-        .demo-button:hover { transform: scale(1.05); box-shadow: 0 5px 15px rgba(247, 151, 30, 0.4); }
+        .demo-button { background: linear-gradient(135deg, #f7971e, #ffd200); color: white; border: none; padding: 1rem 2rem; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; }
+        .demo-button:hover { transform: scale(1.05); }
+        .demo-output { margin-top: 1.5rem; font-size: 1.3rem; color: #ffd200; }
 
         .nav-buttons { display: flex; justify-content: space-between; margin-top: 3rem; gap: 1rem; }
         .nav-btn { padding: 1rem 2.5rem; border: none; border-radius: 8px; font-size: 1.1rem; font-weight: bold; cursor: pointer; transition: all 0.3s; }
@@ -115,8 +115,8 @@ $css_passed = $css_progress && $css_progress['quiz_passed'];
         <div class="lesson-container">
             <div class="locked-message">
                 <h2 style="color: #e94560; margin-bottom: 1rem; font-size: 2rem;">🔒 Lesson Locked</h2>
-                <p style="font-size: 1.2rem; margin-bottom: 2rem;">Complete the CSS lesson first!</p>
-                <button class="exit-btn" style="padding: 1rem 2rem;" onclick="window.location.href='lesson_css_NEW.php'">Go to CSS Lesson</button>
+                <p style="font-size: 1.2rem; margin-bottom: 2rem;">Complete CSS lesson first!</p>
+                <button class="exit-btn" style="padding: 1rem 2rem;" onclick="window.location.href='lesson_css_NEW.php'">Go to CSS</button>
             </div>
         </div>
     <?php else: ?>
@@ -142,19 +142,19 @@ $css_passed = $css_progress && $css_progress['quiz_passed'];
         <div class="step-content active" data-step="1">
             <div class="content-card">
                 <h2>⚡ Welcome to JavaScript!</h2>
-                <p>JavaScript brings websites to life with interactivity and logic!</p>
+                <p>The programming language that brings websites to life!</p>
                 
                 <div class="info-box">
                     <strong>💡 What is JavaScript?</strong><br>
-                    JavaScript is a programming language that makes websites interactive. It runs in the browser and can respond to user actions!
+                    JavaScript is a programming language that adds interactivity to websites. It makes things happen when you click, scroll, type, or interact!
                 </div>
 
                 <h3>Why Learn JavaScript?</h3>
                 <ul>
-                    <li>Create interactive websites</li>
-                    <li>Build web applications</li>
-                    <li>Power modern frameworks (React, Vue)</li>
-                    <li>Full-stack development capability</li>
+                    <li>Make websites interactive and dynamic</li>
+                    <li>Build web applications and games</li>
+                    <li>Most popular programming language</li>
+                    <li>High-paying career opportunities!</li>
                 </ul>
 
                 <div class="tip-box">
@@ -162,8 +162,9 @@ $css_passed = $css_progress && $css_progress['quiz_passed'];
                 </div>
 
                 <div class="interactive-demo">
-                    <p style="margin-bottom: 1rem;">This is JavaScript in action!</p>
-                    <button class="demo-button" onclick="alert('Hello from JavaScript! 🎉')">Click Me!</button>
+                    <h3 style="color: #f7971e; margin-bottom: 1rem;">Try clicking this button!</h3>
+                    <button class="demo-button" onclick="document.getElementById('demoOutput').innerHTML = '🎉 JavaScript works!'">Click Me!</button>
+                    <div id="demoOutput" class="demo-output"></div>
                 </div>
             </div>
         </div>
@@ -171,15 +172,15 @@ $css_passed = $css_progress && $css_progress['quiz_passed'];
         <!-- STEP 2 -->
         <div class="step-content" data-step="2">
             <div class="content-card">
-                <h2>🎥 Watch: JavaScript in 12 Minutes</h2>
-                <p>Quick intro to JavaScript programming!</p>
+                <h2>🎥 Watch: JavaScript in 100 Seconds</h2>
+                <p>Quick intro to JavaScript!</p>
                 
                 <div class="video-wrapper">
                     <iframe src="https://www.youtube.com/embed/DHjqpvDnNGE" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
                 </div>
 
                 <div class="tip-box">
-                    <strong>✅ Pro Tip:</strong> JavaScript is easier than you think. Just practice!
+                    <strong>✅ Pro Tip:</strong> JavaScript runs in the browser - no installation needed!
                 </div>
             </div>
         </div>
@@ -188,12 +189,14 @@ $css_passed = $css_progress && $css_progress['quiz_passed'];
         <div class="step-content" data-step="3">
             <div class="content-card">
                 <h2>📝 JavaScript Basics</h2>
-
+                
                 <h3>Variables</h3>
                 <div class="code-box">
                     <pre>let name = "Edward";
-const age = 21;
-var city = "Kuala Lumpur"; // old way</pre>
+let age = 21;
+const school = "HELP University";
+
+console.log(name); // Edward</pre>
                 </div>
 
                 <h3>Functions</h3>
@@ -202,18 +205,22 @@ var city = "Kuala Lumpur"; // old way</pre>
   return "Hello, " + name + "!";
 }
 
-// Arrow function
-const greet = (name) => "Hello, " + name + "!";</pre>
+console.log(greet("World")); // Hello, World!</pre>
                 </div>
 
-                <h3>Console Logging</h3>
+                <h3>If Statements</h3>
                 <div class="code-box">
-                    <pre>console.log("Hello World!");
-console.log(5 + 10); // 15</pre>
+                    <pre>let score = 85;
+
+if (score >= 70) {
+  console.log("Passed!");
+} else {
+  console.log("Failed!");
+}</pre>
                 </div>
 
                 <div class="info-box">
-                    <strong>📌 Remember:</strong> Use <code>let</code> for variables that change, <code>const</code> for constants!
+                    <strong>📌 Key Points:</strong> Use <code>let</code> for variables, <code>const</code> for constants, and <code>function</code> for reusable code!
                 </div>
             </div>
         </div>
@@ -222,26 +229,37 @@ console.log(5 + 10); // 15</pre>
         <div class="step-content" data-step="4">
             <div class="content-card">
                 <h2>🎯 DOM Manipulation</h2>
-                <p>JavaScript can change HTML content dynamically!</p>
+                <p>DOM = Document Object Model - how JavaScript interacts with HTML!</p>
 
-                <h3>Common DOM Methods</h3>
+                <h3>Selecting Elements</h3>
                 <div class="code-box">
-                    <pre>// Get element
-document.getElementById('myId')
-document.querySelector('.myClass')
+                    <pre>// By ID
+let element = document.getElementById("myId");
 
-// Change content
-element.innerHTML = "New text"
-element.style.color = "red"
+// By Class
+let elements = document.getElementsByClassName("myClass");
 
-// Add event listener
-button.addEventListener('click', function() {
-  alert('Clicked!');
-});</pre>
+// Modern way
+let element = document.querySelector(".myClass");</pre>
                 </div>
 
-                <div class="tip-box">
-                    <strong>⚡ Cool Tip:</strong> You can change anything on a webpage with JavaScript!
+                <h3>Changing Content</h3>
+                <div class="code-box">
+                    <pre>// Change text
+element.innerHTML = "New text!";
+
+// Change style
+element.style.color = "blue";
+
+// Add class
+element.classList.add("active");</pre>
+                </div>
+
+                <h3>Events</h3>
+                <div class="code-box">
+                    <pre>button.addEventListener("click", function() {
+  alert("Button clicked!");
+});</pre>
                 </div>
             </div>
         </div>
@@ -250,7 +268,7 @@ button.addEventListener('click', function() {
         <div class="step-content" data-step="5">
             <div class="content-card">
                 <h2>💻 Try It Yourself!</h2>
-                <p>Write JavaScript code and see it run!</p>
+                <p>Create an interactive counter:</p>
 
                 <div class="editor-container">
                     <div class="editor-panel">
@@ -259,38 +277,72 @@ button.addEventListener('click', function() {
 <html>
 <head>
   <style>
-    body { 
-      font-family: Arial; 
-      padding: 20px;
+    body {
+      font-family: Arial;
       text-align: center;
+      padding: 50px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
     }
+    
+    .counter {
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      display: inline-block;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    
+    #count {
+      font-size: 4rem;
+      color: #667eea;
+      margin: 20px 0;
+    }
+    
     button {
-      background: linear-gradient(135deg, #f7971e, #ffd200);
+      background: #667eea;
       color: white;
       border: none;
       padding: 15px 30px;
-      font-size: 18px;
-      border-radius: 8px;
+      font-size: 1.2rem;
+      border-radius: 10px;
       cursor: pointer;
+      margin: 10px;
     }
-    #output {
-      margin-top: 20px;
-      font-size: 24px;
-      color: #f7971e;
+    
+    button:hover {
+      background: #5568d3;
     }
   </style>
 </head>
 <body>
-  <h1>JavaScript Counter</h1>
-  <div id="output">0</div>
-  <button onclick="increment()">Click to Increment!</button>
-  
+  <div class="counter">
+    <h1>Counter App</h1>
+    <div id="count">0</div>
+    <button onclick="increment()">➕ Add</button>
+    <button onclick="decrement()">➖ Subtract</button>
+    <button onclick="reset()">🔄 Reset</button>
+  </div>
+
   <script>
     let count = 0;
     
     function increment() {
       count++;
-      document.getElementById('output').textContent = count;
+      updateDisplay();
+    }
+    
+    function decrement() {
+      count--;
+      updateDisplay();
+    }
+    
+    function reset() {
+      count = 0;
+      updateDisplay();
+    }
+    
+    function updateDisplay() {
+      document.getElementById('count').textContent = count;
     }
   </script>
 </body>
@@ -304,7 +356,7 @@ button.addEventListener('click', function() {
                 </div>
 
                 <div class="tip-box">
-                    <strong>⚡ Challenge:</strong> Try adding a "Reset" button!
+                    <strong>⚡ Challenge:</strong> Add a button that multiplies the count by 2!
                 </div>
             </div>
         </div>
@@ -312,22 +364,22 @@ button.addEventListener('click', function() {
         <!-- STEP 6 -->
         <div class="step-content" data-step="6">
             <div class="content-card" style="text-align: center;">
-                <h2>🎯 You're a JavaScript Pro!</h2>
+                <h2>🎯 Quiz Time!</h2>
                 <p style="font-size: 1.2rem; margin: 2rem 0;">Amazing! You've learned JavaScript!</p>
                 
                 <div style="font-size: 5rem; margin: 2rem 0;">⚡</div>
                 
                 <p style="font-size: 1.1rem; color: #ddd; margin-bottom: 2rem;">
-                    You now know HTML, CSS, AND JavaScript!<br>
-                    You're a full web developer! 🚀
+                    You're now a web developer!<br>
+                    Complete the quiz to finish your journey.
                 </p>
 
                 <div class="info-box" style="text-align: left;">
                     <strong>📝 Quiz Topics:</strong>
                     <ul style="margin-top: 1rem;">
+                        <li>JavaScript syntax</li>
                         <li>Variables & functions</li>
                         <li>DOM manipulation</li>
-                        <li>Event handling</li>
                     </ul>
                 </div>
             </div>
@@ -345,6 +397,8 @@ button.addEventListener('click', function() {
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/htmlmixed/htmlmixed.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/css/css.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.2/mode/javascript/javascript.min.js"></script>
 
     <script>
