@@ -7,28 +7,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     exit();
 }
 
-if (!isset($_GET['id'])) {
-    header("Location: view_courses.php");
-    exit();
-}
-
 $admin_name = $_SESSION['full_name'];
-$course_id = intval($_GET['id']);
 $success = '';
 $error = '';
 
-// Get course data
-$stmt = $conn->prepare("SELECT * FROM lessons WHERE id = ?");
-$stmt->bind_param("i", $course_id);
-$stmt->execute();
-$result = $stmt->get_result();
+// Get course ID
+$course_id = isset($_GET['id']) ? intval($_GET['id']) : 0;
 
-if ($result->num_rows === 0) {
+if ($course_id === 0) {
     header("Location: view_courses.php");
     exit();
 }
-
-$course = $result->fetch_assoc();
 
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -48,20 +37,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 duration_minutes = ?, order_index = ?
             WHERE id = ?
         ");
-        $stmt->bind_param("sssssii", $title, $description, $category, $difficulty, $duration, $order_index, $course_id);
+        $stmt->bind_param("ssssiii", $title, $description, $category, $difficulty, $duration, $order_index, $course_id);
         
         if ($stmt->execute()) {
             $success = "Course updated successfully!";
-            // Refresh course data
-            $stmt = $conn->prepare("SELECT * FROM lessons WHERE id = ?");
-            $stmt->bind_param("i", $course_id);
-            $stmt->execute();
-            $course = $stmt->get_result()->fetch_assoc();
         } else {
-            $error = "Failed to update course.";
+            $error = "Failed to update course. Please try again.";
         }
     }
 }
+
+// Get current course data
+$course_query = $conn->prepare("SELECT * FROM lessons WHERE id = ?");
+$course_query->bind_param("i", $course_id);
+$course_query->execute();
+$course_result = $course_query->get_result();
+
+if ($course_result->num_rows === 0) {
+    header("Location: view_courses.php");
+    exit();
+}
+
+$course = $course_result->fetch_assoc();
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -70,15 +67,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Edit Course - Code Lab @ HELP</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: #2e3f54;
+      background-color: #1a2332;
       color: white;
     }
 
     .navbar {
-      background-color: #111;
+      background-color: #0f1419;
       padding: 1rem 2rem;
       display: flex;
       justify-content: space-between;
@@ -107,6 +108,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .nav-links li a {
       color: white;
       text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    .nav-links li a:hover {
+      background-color: #1a2332;
     }
 
     .nav-icons {
@@ -116,7 +124,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .logout-btn {
-      background-color: #2e3f54;
+      background-color: #1a2332;
       color: white;
       border: none;
       padding: 0.4rem 1rem;
@@ -139,10 +147,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       margin-bottom: 0.5rem;
     }
 
+    .page-header p {
+      color: #94a3b8;
+    }
+
     .form-container {
-      background-color: #1a2332;
+      background-color: #1e293b;
       padding: 2rem;
       border-radius: 12px;
+      box-sizing: border-box;
+      border: 1px solid #334155;
     }
 
     .form-group {
@@ -165,10 +179,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       width: 100%;
       padding: 0.8rem;
       border-radius: 8px;
-      border: 1px solid #2e3f54;
-      background-color: #2e3f54;
+      border: 1px solid #334155;
+      background-color: #0f172a;
       color: white;
       font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #60a5fa;
     }
 
     .form-group textarea {
@@ -180,6 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1.5rem;
+      margin-bottom: 1.5rem;
     }
 
     .form-actions {
@@ -214,35 +237,44 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .alert-success {
-      background-color: #4caf50;
+      background-color: #064e3b;
+      border: 1px solid #10b981;
+      color: #6ee7b7;
     }
 
     .alert-error {
-      background-color: #f44336;
+      background-color: #7f1d1d;
+      border: 1px solid #ef4444;
+      color: #fca5a5;
     }
   </style>
 </head>
 <body>
   <nav class="navbar">
-    <div class="logo">
-      <a href="adminDashboard.php">Code Lab @ HELP</a>
-    </div>
-    <ul class="nav-links">
-      <li><a href="adminDashboard.php">Dashboard</a></li>
-      <li><a href="#">Members</a></li>
-      <li><a href="#">Reports</a></li>
-      <li><a href="#">Feedback</a></li>
-    </ul>
-    <div class="nav-icons">
-      <span><?php echo htmlspecialchars($admin_name); ?></span>
-      <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
-    </div>
+      <div class="logo">
+        <a href="adminDashboard.php">Code Lab @ HELP</a>
+      </div>
+      <ul class="nav-links">
+        <li><a href="adminDashboard.php">Dashboard</a></li>
+        <li><a href="registration.php">Register User</a></li>
+        <li><a href="create_course.php">Create Course</a></li>
+        <li><a href="view_courses.php">View Courses</a></li>
+        <li><a href="manage_users.php">Manage Users</a></li>
+        <li><a href="system_settings.php">System Settings</a></li>
+      </ul>
+      <div class="nav-icons">
+        <span class="icon">🔔</span>
+        <span class="icon">⚙️</span>
+        <span class="icon">👤</span>
+        <span class="username"><?php echo htmlspecialchars($admin_name ?? 'Admin'); ?></span>
+        <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
+      </div>
   </nav>
 
   <div class="container">
     <div class="page-header">
       <h1>Edit Course</h1>
-      <p style="color: #aaa;">Update course information</p>
+      <p>Update course information</p>
     </div>
 
     <?php if ($success): ?>
@@ -256,12 +288,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <form method="POST" class="form-container">
       <div class="form-group">
         <label>Course Title <span class="required">*</span></label>
-        <input type="text" name="title" value="<?php echo htmlspecialchars($course['title']); ?>" required>
+        <input type="text" name="title" placeholder="e.g., HTML Basics" 
+               value="<?php echo htmlspecialchars($course['title']); ?>" required>
       </div>
 
       <div class="form-group">
         <label>Description</label>
-        <textarea name="description"><?php echo htmlspecialchars($course['description']); ?></textarea>
+        <textarea name="description" placeholder="Brief description of what students will learn"><?php echo htmlspecialchars($course['description'] ?? ''); ?></textarea>
       </div>
 
       <div class="form-row">
@@ -287,12 +320,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="form-row">
         <div class="form-group">
           <label>Duration (minutes)</label>
-          <input type="number" name="duration_minutes" value="<?php echo $course['duration_minutes']; ?>" min="0">
+          <input type="number" name="duration_minutes" 
+                 value="<?php echo $course['duration_minutes']; ?>" min="0">
         </div>
 
         <div class="form-group">
           <label>Order Index</label>
-          <input type="number" name="order_index" value="<?php echo $course['order_index']; ?>" min="1">
+          <input type="number" name="order_index" 
+                 value="<?php echo $course['order_index']; ?>" min="1">
         </div>
       </div>
 

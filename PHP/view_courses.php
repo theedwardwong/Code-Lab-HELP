@@ -28,15 +28,19 @@ $courses = $conn->query($courses_query);
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>View All Courses - Code Lab @ HELP</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: #2e3f54;
+      background-color: #1a2332;
       color: white;
     }
 
     .navbar {
-      background-color: #111;
+      background-color: #0f1419;
       padding: 1rem 2rem;
       display: flex;
       justify-content: space-between;
@@ -65,6 +69,13 @@ $courses = $conn->query($courses_query);
     .nav-links li a {
       color: white;
       text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    .nav-links li a:hover {
+      background-color: #1a2332;
     }
 
     .nav-icons {
@@ -74,7 +85,7 @@ $courses = $conn->query($courses_query);
     }
 
     .logout-btn {
-      background-color: #2e3f54;
+      background-color: #1a2332;
       color: white;
       border: none;
       padding: 0.4rem 1rem;
@@ -83,7 +94,7 @@ $courses = $conn->query($courses_query);
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1200px;
       margin: 0 auto;
       padding: 2rem;
     }
@@ -97,6 +108,12 @@ $courses = $conn->query($courses_query);
 
     .page-header h1 {
       font-size: 2rem;
+      margin: 0;
+    }
+
+    .page-header p {
+      color: #94a3b8;
+      margin: 0.5rem 0 0 0;
     }
 
     .btn-primary {
@@ -108,16 +125,32 @@ $courses = $conn->query($courses_query);
       font-weight: bold;
     }
 
+    /* Centered Box Container */
+    .courses-box {
+      background-color: #1e293b;
+      border-radius: 16px;
+      padding: 2.5rem;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
+
     .courses-grid {
       display: grid;
       gap: 1.5rem;
     }
 
+    /* Course Card */
     .course-card {
-      background-color: #1a2332;
+      background-color: #0f172a;
       padding: 1.5rem;
       border-radius: 12px;
-      border-left: 4px solid #358efb;
+      border: 2px solid #334155;
+      transition: all 0.3s;
+    }
+
+    .course-card:hover {
+      border-color: #3b82f6;
+      transform: translateY(-2px);
     }
 
     .course-header {
@@ -136,7 +169,7 @@ $courses = $conn->query($courses_query);
     .course-meta {
       display: flex;
       gap: 2rem;
-      color: #aaa;
+      color: #94a3b8;
       font-size: 0.9rem;
       margin-top: 1rem;
     }
@@ -162,19 +195,12 @@ $courses = $conn->query($courses_query);
     .difficulty-intermediate { background-color: #ff9800; }
     .difficulty-advanced { background-color: #f44336; }
 
-    .empty-state {
-      text-align: center;
-      padding: 3rem;
-      background-color: #1a2332;
-      border-radius: 12px;
-      color: #888;
-    }
     .course-actions {
       display: flex;
       gap: 1rem;
       margin-top: 1rem;
       padding-top: 1rem;
-      border-top: 1px solid #2e3f54;
+      border-top: 1px solid #334155;
     }
 
     .btn-edit,
@@ -205,71 +231,92 @@ $courses = $conn->query($courses_query);
     .btn-delete:hover {
       background-color: #d32f2f;
     }
+
+    .empty-state {
+      text-align: center;
+      padding: 3rem;
+      color: #94a3b8;
+    }
   </style>
 </head>
 <body>
   <nav class="navbar">
-    <div class="logo">
-      <a href="adminDashboard.php">Code Lab @ HELP</a>
-    </div>
-    <ul class="nav-links">
-      <li><a href="adminDashboard.php">Dashboard</a></li>
-      <li><a href="#">Members</a></li>
-      <li><a href="#">Reports</a></li>
-      <li><a href="#">Feedback</a></li>
-    </ul>
-    <div class="nav-icons">
-      <span><?php echo htmlspecialchars($admin_name); ?></span>
-      <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
-    </div>
+      <div class="logo">
+        <a href="adminDashboard.php">Code Lab @ HELP</a>
+      </div>
+      <ul class="nav-links">
+        <li><a href="adminDashboard.php">Dashboard</a></li>
+        <li><a href="registration.php">Register User</a></li>
+        <li><a href="create_course.php">Create Course</a></li>
+        <li><a href="view_courses.php">View Courses</a></li>
+        <li><a href="manage_users.php">Manage Users</a></li>
+        <li><a href="system_settings.php">System Settings</a></li>
+      </ul>
+      <div class="nav-icons">
+        <span class="icon">🔔</span>
+        <span class="icon">⚙️</span>
+        <span class="icon">👤</span>
+        <span class="username"><?php echo htmlspecialchars($admin_name ?? 'Admin'); ?></span>
+        <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
+      </div>
   </nav>
 
   <div class="container">
     <div class="page-header">
       <div>
         <h1>All Courses</h1>
-        <p style="color: #aaa;">View and manage all courses and lessons</p>
+        <p>View and manage all courses and lessons</p>
       </div>
       <a href="create_course.php" class="btn-primary">+ Create New Course</a>
     </div>
 
-    <div class="courses-grid">
-      <?php while ($course = $courses->fetch_assoc()): ?>
-      <div class="course-card">
-        <div class="course-header">
-          <div>
-            <div class="course-title"><?php echo htmlspecialchars($course['title']); ?></div>
-            <div style="color: #aaa; margin-top: 0.5rem;">
-              <?php echo htmlspecialchars($course['description'] ?? 'No description'); ?>
+    <!-- Centered Box Container -->
+    <div class="courses-box">
+      <div class="courses-grid">
+        <?php if ($courses->num_rows > 0): ?>
+          <?php while ($course = $courses->fetch_assoc()): ?>
+          <div class="course-card">
+            <div class="course-header">
+              <div>
+                <div class="course-title"><?php echo htmlspecialchars($course['title']); ?></div>
+                <div style="color: #94a3b8; margin-top: 0.5rem;">
+                  <?php echo htmlspecialchars($course['description'] ?? 'No description'); ?>
+                </div>
+              </div>
+              <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                <span class="badge badge-<?php echo $course['category']; ?>">
+                  <?php echo strtoupper($course['category']); ?>
+                </span>
+                <span class="difficulty difficulty-<?php echo $course['difficulty']; ?>">
+                  <?php echo strtoupper($course['difficulty']); ?>
+                </span>
+              </div>
+            </div>
+
+            <div class="course-meta">
+              <span>Duration: <?php echo $course['duration_minutes']; ?> mins</span>
+              <span>Exercises: <?php echo $course['exercise_count']; ?></span>
+              <span>Created by: <?php echo htmlspecialchars($course['creator_name'] ?? 'Unknown'); ?></span>
+              <span>Order: <?php echo $course['order_index']; ?></span>
+            </div>
+
+            <div class="course-actions">
+              <button class="btn-edit" onclick="window.location.href='edit_course.php?id=<?php echo $course['id']; ?>'">
+                ✏️ Edit
+              </button>
+              <button class="btn-delete" onclick="confirmDelete(<?php echo $course['id']; ?>, '<?php echo htmlspecialchars($course['title'], ENT_QUOTES); ?>')">
+                🗑️ Delete
+              </button>
             </div>
           </div>
-          <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-            <span class="badge badge-<?php echo $course['category']; ?>">
-              <?php echo strtoupper($course['category']); ?>
-            </span>
-            <span class="difficulty difficulty-<?php echo $course['difficulty']; ?>">
-              <?php echo strtoupper($course['difficulty']); ?>
-            </span>
+          <?php endwhile; ?>
+        <?php else: ?>
+          <div class="empty-state">
+            <p style="font-size: 1.2rem; margin-bottom: 1rem;">📭 No courses yet</p>
+            <p>Create your first course to get started!</p>
           </div>
-        </div>
-
-        <div class="course-meta">
-          <span>Duration: <?php echo $course['duration_minutes']; ?> mins</span>
-          <span>Exercises: <?php echo $course['exercise_count']; ?></span>
-          <span>Created by: <?php echo htmlspecialchars($course['creator_name'] ?? 'Unknown'); ?></span>
-          <span>Order: <?php echo $course['order_index']; ?></span>
-        </div>
-
-        <div class="course-actions">
-          <button class="btn-edit" onclick="window.location.href='edit_course.php?id=<?php echo $course['id']; ?>'">
-            ✏️ Edit
-          </button>
-          <button class="btn-delete" onclick="confirmDelete(<?php echo $course['id']; ?>, '<?php echo htmlspecialchars($course['title'], ENT_QUOTES); ?>')">
-            🗑️ Delete
-          </button>
-        </div>
+        <?php endif; ?>
       </div>
-    <?php endwhile; ?>
     </div>
   </div>
 

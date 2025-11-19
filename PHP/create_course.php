@@ -44,15 +44,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Create New Course - Code Lab @ HELP</title>
   <style>
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       font-family: 'Segoe UI', sans-serif;
-      background-color: #2e3f54;
+      background-color: #1a2332;
       color: white;
     }
 
     .navbar {
-      background-color: #111;
+      background-color: #0f1419;
       padding: 1rem 2rem;
       display: flex;
       justify-content: space-between;
@@ -81,6 +85,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     .nav-links li a {
       color: white;
       text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
+
+    .nav-links li a:hover {
+      background-color: #1a2332;
     }
 
     .nav-icons {
@@ -90,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .logout-btn {
-      background-color: #2e3f54;
+      background-color: #1a2332;
       color: white;
       border: none;
       padding: 0.4rem 1rem;
@@ -114,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     .form-container {
-      background-color: #1a2332;
+      background-color: #1e293b;
       padding: 2rem;
       border-radius: 12px;
     }
@@ -139,10 +150,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       width: 100%;
       padding: 0.8rem;
       border-radius: 8px;
-      border: 1px solid #2e3f54;
-      background-color: #2e3f54;
+      border: 1px solid #334155;
+      background-color: #0f172a;
       color: white;
       font-family: inherit;
+      box-sizing: border-box;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #60a5fa;
     }
 
     .form-group textarea {
@@ -154,6 +173,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 1.5rem;
+      margin-bottom: 1.5rem;
     }
 
     .form-actions {
@@ -198,19 +218,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </head>
 <body>
   <nav class="navbar">
-    <div class="logo">
-      <a href="adminDashboard.php">Code Lab @ HELP</a>
-    </div>
-    <ul class="nav-links">
-      <li><a href="adminDashboard.php">Dashboard</a></li>
-      <li><a href="#">Members</a></li>
-      <li><a href="#">Reports</a></li>
-      <li><a href="#">Feedback</a></li>
-    </ul>
-    <div class="nav-icons">
-      <span><?php echo htmlspecialchars($admin_name); ?></span>
-      <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
-    </div>
+      <div class="logo">
+        <a href="adminDashboard.php">Code Lab @ HELP</a>
+      </div>
+      <ul class="nav-links">
+        <li><a href="adminDashboard.php">Dashboard</a></li>
+        <li><a href="registration.php">Register User</a></li>
+        <li><a href="create_course.php">Create Course</a></li>
+        <li><a href="view_courses.php">View Courses</a></li>
+        <li><a href="manage_users.php">Manage Users</a></li>
+        <li><a href="system_settings.php">System Settings</a></li>
+      </ul>
+      <div class="nav-icons">
+        <span class="icon">🔔</span>
+        <span class="icon">⚙️</span>
+        <span class="icon">👤</span>
+        <span class="username"><?php echo htmlspecialchars($_SESSION['full_name'] ?? 'Admin'); ?></span>
+        <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
+      </div>
   </nav>
 
   <div class="container">

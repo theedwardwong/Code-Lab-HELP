@@ -2,752 +2,662 @@
 session_start();
 include 'db_connect.php';
 
+// Check admin access
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'admin') {
     header("Location: login.php");
     exit();
 }
 
-$admin_name = $_SESSION['full_name'];
+$success = '';
+$error = '';
 
-// Get filter parameters
-$search = isset($_GET['search']) ? trim($_GET['search']) : '';
-$role_filter = isset($_GET['role']) ? $_GET['role'] : 'all';
-
-// Build query
-$where_conditions = ["1=1"];
-$params = [];
-$types = "";
-
-if (!empty($search)) {
-    $where_conditions[] = "(full_name LIKE ? OR email LIKE ?)";
-    $search_param = '%' . $search . '%';
-    $params[] = $search_param;
-    $params[] = $search_param;
-    $types .= "ss";
+// Handle edit user role
+if (isset($_POST['edit_user'])) {
+    $user_id = intval($_POST['user_id']);
+    $new_role = $_POST['new_role'];
+    
+    $update = $conn->prepare("UPDATE users SET role = ? WHERE id = ?");
+    $update->bind_param("si", $new_role, $user_id);
+    
+    if ($update->execute()) {
+        $success = "User role updated successfully!";
+    } else {
+        $error = "Error updating user role.";
+    }
 }
 
-if ($role_filter !== 'all') {
-    $where_conditions[] = "role = ?";
-    $params[] = $role_filter;
-    $types .= "s";
+// Handle delete user
+if (isset($_GET['delete'])) {
+    $user_id = intval($_GET['delete']);
+    $delete = $conn->prepare("DELETE FROM users WHERE id = ?");
+    $delete->bind_param("i", $user_id);
+    if ($delete->execute()) {
+        $success = "User deleted successfully!";
+    } else {
+        $error = "Error deleting user.";
+    }
 }
 
-$where_clause = implode(" AND ", $where_conditions);
-
-// Get all users
-$users_query = "
-    SELECT 
-        u.*,
-        (SELECT COUNT(*) FROM exercise_submissions es WHERE es.student_id = u.id) as submission_count,
-        (SELECT COUNT(*) FROM assignments a WHERE a.instructor_id = u.id) as assignment_count
-    FROM users u
-    WHERE $where_clause
-    ORDER BY u.created_at DESC
-";
-
-$users_stmt = $conn->prepare($users_query);
-if (!empty($params)) {
-    $users_stmt->bind_param($types, ...$params);
+// Handle reset password
+if (isset($_POST['reset_password'])) {
+    $user_id = intval($_POST['user_id']);
+    $new_password = bin2hex(random_bytes(4));
+    $hashed = password_hash($new_password, PASSWORD_DEFAULT);
+    
+    $update = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+    $update->bind_param("si", $hashed, $user_id);
+    
+    if ($update->execute()) {
+        $success = "Password reset! New password: <strong>$new_password</strong>";
+    } else {
+        $error = "Error resetting password.";
+    }
 }
-$users_stmt->execute();
-$users = $users_stmt->get_result();
 
 // Get statistics
-$stats_query = "
-    SELECT 
-        COUNT(*) as total_users,
-        COUNT(CASE WHEN role = 'student' THEN 1 END) as total_students,
-        COUNT(CASE WHEN role = 'instructor' THEN 1 END) as total_instructors,
-        COUNT(CASE WHEN role = 'admin' THEN 1 END) as total_admins,
-        COUNT(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as new_users
-    FROM users
-";
-$stats = $conn->query($stats_query)->fetch_assoc();
+$stats = [];
+$result = $conn->query("SELECT COUNT(*) as count FROM users");
+$stats['total_users'] = $result->fetch_assoc()['count'];
+
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'student'");
+$stats['total_students'] = $result->fetch_assoc()['count'];
+
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'instructor'");
+$stats['total_instructors'] = $result->fetch_assoc()['count'];
+
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+$stats['total_admins'] = $result->fetch_assoc()['count'];
+
+$result = $conn->query("SELECT COUNT(*) as count FROM users WHERE created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)");
+$stats['new_users'] = $result->fetch_assoc()['count'];
+
+// Build search query
+$search_term = isset($_GET['search']) ? trim($_GET['search']) : '';
+$role_filter = isset($_GET['role_filter']) ? $_GET['role_filter'] : 'all';
+
+$users_query = "SELECT * FROM users WHERE 1=1";
+
+// Add search filter
+if (!empty($search_term)) {
+    $search_term_sql = '%' . $search_term . '%';
+    $users_query .= " AND (full_name LIKE '$search_term_sql' OR email LIKE '$search_term_sql')";
+}
+
+// Add role filter
+if ($role_filter !== 'all') {
+    $users_query .= " AND role = '$role_filter'";
+}
+
+$users_query .= " ORDER BY created_at DESC";
+$users_result = $conn->query($users_query);
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Management - Code Lab @ HELP</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manage Users - Code Lab @ HELP</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background-color: #2e3f54;
-            color: white;
-        }
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1a2332;
+      color: white;
+    }
 
-        .navbar {
-            background-color: #111;
-            padding: 1rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    .navbar {
+      background-color: #0f1419;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
 
-        .logo { color: white; font-weight: bold; font-size: 1.2rem; }
-        .logo a { color: white; text-decoration: none; }
-        .nav-links { list-style: none; display: flex; gap: 1.5rem; margin: 0; padding: 0; }
-        .nav-links li a { color: white; text-decoration: none; }
-        .nav-icons { display: flex; align-items: center; gap: 1rem; }
-        
-        .logout-btn {
-            background-color: #2e3f54;
-            color: white;
-            border: none;
-            padding: 0.4rem 1rem;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+    .logo {
+      color: white;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
 
-        .container {
-            max-width: 1600px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+    .logo a {
+      color: white;
+      text-decoration: none;
+    }
 
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 2rem;
-        }
+    .nav-links {
+      list-style: none;
+      display: flex;
+      gap: 1.5rem;
+      margin: 0;
+      padding: 0;
+    }
 
-        .page-header h1 {
-            font-size: 2rem;
-            margin-bottom: 0.5rem;
-        }
+    .nav-links li a {
+      color: white;
+      text-decoration: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      transition: background-color 0.3s;
+    }
 
-        /* Stats Cards */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
+    .nav-links li a:hover {
+      background-color: #1a2332;
+    }
 
-        .stat-card {
-            background-color: #1a2332;
-            padding: 1.5rem;
-            border-radius: 12px;
-            text-align: center;
-            border-left: 4px solid #358efb;
-        }
+    .nav-icons {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
 
-        .stat-value {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #358efb;
-        }
+    .logout-btn {
+      background-color: #1a2332;
+      color: white;
+      border: none;
+      padding: 0.4rem 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
 
-        .stat-label {
-            color: #aaa;
-            margin-top: 0.5rem;
-            font-size: 0.9rem;
-        }
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
 
-        .stat-card.students { border-left-color: #4caf50; }
-        .stat-card.students .stat-value { color: #4caf50; }
+    .page-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
 
-        .stat-card.instructors { border-left-color: #ff9800; }
-        .stat-card.instructors .stat-value { color: #ff9800; }
+    .page-header h2 {
+      font-size: 2rem;
+      margin: 0;
+    }
 
-        .stat-card.admins { border-left-color: #f44336; }
-        .stat-card.admins .stat-value { color: #f44336; }
+    .page-header p {
+      color: #94a3b8;
+      margin: 0.5rem 0 0 0;
+    }
 
-        /* Filters */
-        .filters {
-            background-color: #1a2332;
-            padding: 1.5rem;
-            border-radius: 12px;
-            margin-bottom: 2rem;
-            display: flex;
-            gap: 1rem;
-            align-items: center;
-            flex-wrap: wrap;
-        }
+    .btn-add {
+      padding: 0.8rem 1.5rem;
+      background-color: #358efb;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+    }
 
-        .filters input[type="text"] {
-            flex: 1;
-            min-width: 300px;
-            padding: 0.8rem;
-            border-radius: 8px;
-            border: 1px solid #2e3f54;
-            background-color: #2e3f54;
-            color: white;
-        }
+    .main-box {
+      background-color: #1e293b;
+      border-radius: 16px;
+      padding: 2.5rem;
+      border: 1px solid #334155;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+    }
 
-        .filters select {
-            padding: 0.8rem;
-            border-radius: 8px;
-            border: 1px solid #2e3f54;
-            background-color: #2e3f54;
-            color: white;
-            cursor: pointer;
-        }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
 
-        .btn {
-            padding: 0.8rem 1.5rem;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s;
-        }
+    .stat-box {
+      background-color: #0f172a;
+      border-radius: 12px;
+      padding: 1.5rem;
+      text-align: center;
+      border: 2px solid transparent;
+    }
 
-        .btn-primary {
-            background-color: #358efb;
-            color: white;
-        }
+    .stat-box:nth-child(1) { border-color: #3b82f6; }
+    .stat-box:nth-child(2) { border-color: #10b981; }
+    .stat-box:nth-child(3) { border-color: #f59e0b; }
+    .stat-box:nth-child(4) { border-color: #ef4444; }
+    .stat-box:nth-child(5) { border-color: #8b5cf6; }
 
-        .btn-primary:hover {
-            background-color: #2a72c9;
-        }
+    .stat-number {
+      font-size: 2.5rem;
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+    }
 
-        .btn-search {
-            background-color: #4caf50;
-            color: white;
-        }
+    .stat-box:nth-child(1) .stat-number { color: #60a5fa; }
+    .stat-box:nth-child(2) .stat-number { color: #34d399; }
+    .stat-box:nth-child(3) .stat-number { color: #fbbf24; }
+    .stat-box:nth-child(4) .stat-number { color: #f87171; }
+    .stat-box:nth-child(5) .stat-number { color: #a78bfa; }
 
-        .btn-search:hover {
-            background-color: #45a049;
-        }
+    .stat-label {
+      color: #94a3b8;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
 
-        /* Users Table */
-        .users-container {
-            background-color: #1a2332;
-            border-radius: 12px;
-            overflow: hidden;
-        }
+    .search-container {
+      background-color: #0f172a;
+      padding: 1.5rem;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      border: 1px solid #334155;
+    }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+    .search-input {
+      flex: 1;
+      padding: 0.8rem;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background-color: #1e293b;
+      color: white;
+    }
 
-        thead {
-            background-color: #111b25;
-        }
+    .search-select {
+      padding: 0.8rem;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      background-color: #1e293b;
+      color: white;
+    }
 
-        th {
-            padding: 1rem;
-            text-align: left;
-            font-weight: bold;
-            border-bottom: 2px solid #2e3f54;
-        }
+    .btn-search {
+      padding: 0.8rem 1.5rem;
+      background-color: #4caf50;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
 
-        td {
-            padding: 1rem;
-            border-bottom: 1px solid #2e3f54;
-        }
+    .btn-clear {
+      padding: 0.8rem 1.5rem;
+      background-color: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
 
-        tbody tr:hover {
-            background-color: #1f2a3a;
-        }
+    table {
+      width: 100%;
+      background-color: #0f172a;
+      border-radius: 12px;
+      overflow: hidden;
+      border-collapse: collapse;
+      border: 1px solid #334155;
+    }
 
-        .role-badge {
-            display: inline-block;
-            padding: 0.3rem 0.8rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: bold;
-        }
+    th {
+      background-color: #0f172a;
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #f1f5f9;
+      border-bottom: 2px solid #334155;
+    }
 
-        .role-admin {
-            background-color: #f44336;
-            color: white;
-        }
+    td {
+      padding: 1rem;
+      border-bottom: 1px solid #334155;
+      color: #cbd5e1;
+    }
 
-        .role-instructor {
-            background-color: #ff9800;
-            color: white;
-        }
+    tr:last-child td {
+      border-bottom: none;
+    }
 
-        .role-student {
-            background-color: #4caf50;
-            color: white;
-        }
+    tr:hover {
+      background-color: #1e293b;
+    }
 
-        .action-btns {
-            display: flex;
-            gap: 0.5rem;
-        }
+    .role-badge {
+      display: inline-block;
+      padding: 0.3rem 0.8rem;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
 
-        .btn-action {
-            padding: 0.4rem 0.8rem;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            transition: all 0.2s;
-        }
+    .role-student { background-color: #4caf50; color: white; }
+    .role-instructor { background-color: #ff9800; color: white; }
+    .role-admin { background-color: #f44336; color: white; }
 
-        .btn-edit {
-            background-color: #358efb;
-            color: white;
-        }
+    .first-login-badge {
+      background-color: #358efb;
+      color: white;
+      padding: 0.2rem 0.6rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      margin-left: 0.5rem;
+    }
 
-        .btn-edit:hover {
-            background-color: #2a72c9;
-        }
+    .action-btn {
+      padding: 0.5rem 1rem;
+      margin: 0 0.2rem;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: transform 0.2s;
+      font-weight: bold;
+    }
 
-        .btn-reset {
-            background-color: #ff9800;
-            color: white;
-        }
+    .action-btn:hover {
+      transform: translateY(-2px);
+    }
 
-        .btn-reset:hover {
-            background-color: #e68900;
-        }
+    .btn-edit { background-color: #358efb; color: white; }
+    .btn-reset { background-color: #ff9800; color: white; }
+    .btn-delete { background-color: #f44336; color: white; }
 
-        .btn-delete {
-            background-color: #f44336;
-            color: white;
-        }
+    .alert {
+      padding: 1rem;
+      margin-bottom: 1.5rem;
+      border-radius: 8px;
+    }
 
-        .btn-delete:hover {
-            background-color: #d32f2f;
-        }
+    .alert-success {
+      background-color: #064e3b;
+      border: 1px solid #10b981;
+      color: #6ee7b7;
+    }
 
-        /* Modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            z-index: 1000;
-            overflow-y: auto;
-        }
+    .alert-error {
+      background-color: #7f1d1d;
+      border: 1px solid #ef4444;
+      color: #fca5a5;
+    }
 
-        .modal.active {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 2rem;
-        }
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0,0,0,0.7);
+    }
 
-        .modal-content {
-            background-color: #1a2332;
-            padding: 2rem;
-            border-radius: 12px;
-            max-width: 600px;
-            width: 100%;
-            max-height: 90vh;
-            overflow-y: auto;
-        }
+    .modal-content {
+      background-color: #1e293b;
+      margin: 10% auto;
+      padding: 2rem;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 500px;
+      border: 1px solid #334155;
+    }
 
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid #2e3f54;
-        }
+    .modal-header {
+      font-size: 1.5rem;
+      margin-bottom: 1.5rem;
+      color: #f1f5f9;
+    }
 
-        .close-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 2rem;
-            cursor: pointer;
-            line-height: 1;
-        }
+    .modal-body label {
+      display: block;
+      margin-bottom: 0.5rem;
+      color: #e4e7eb;
+    }
 
-        .form-group {
-            margin-bottom: 1.5rem;
-        }
+    .modal-body select {
+      width: 100%;
+      padding: 0.8rem;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      background-color: #0f172a;
+      color: white;
+      margin-bottom: 1.5rem;
+    }
 
-        .form-group label {
-            display: block;
-            margin-bottom: 0.5rem;
-            font-weight: bold;
-        }
+    .modal-actions {
+      display: flex;
+      gap: 1rem;
+      justify-content: flex-end;
+    }
 
-        .form-group input,
-        .form-group select {
-            width: 100%;
-            padding: 0.8rem;
-            border-radius: 8px;
-            border: 1px solid #2e3f54;
-            background-color: #2e3f54;
-            color: white;
-            font-family: inherit;
-        }
+    .btn-cancel {
+      padding: 0.8rem 1.5rem;
+      background-color: #6b7280;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
 
-        .form-actions {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-            margin-top: 2rem;
-        }
-
-        .btn-secondary {
-            background-color: #666;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #555;
-        }
-
-        .alert {
-            padding: 1rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-            display: none;
-        }
-
-        .alert.show {
-            display: block;
-        }
-
-        .alert-success {
-            background-color: #4caf50;
-            color: white;
-        }
-
-        .alert-error {
-            background-color: #f44336;
-            color: white;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            color: #888;
-        }
-
-        .first-login-badge {
-            background-color: #2196f3;
-            color: white;
-            padding: 0.2rem 0.5rem;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            margin-left: 0.5rem;
-        }
-    </style>
+    .btn-save {
+      padding: 0.8rem 1.5rem;
+      background-color: #358efb;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo">
-            <a href="adminDashboard.php">Code Lab @ HELP</a>
-        </div>
-        <ul class="nav-links">
-            <li><a href="adminDashboard.php">Dashboard</a></li>
-            <li><a href="manage_users.php">Manage Users</a></li>
-            <li><a href="registration.php">Add User</a></li>
-            <li><a href="view_courses.php">Courses</a></li>
-        </ul>
-        <div class="nav-icons">
-            <span><?php echo htmlspecialchars($admin_name); ?></span>
-            <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
-        </div>
-    </nav>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="adminDashboard.php">Code Lab @ HELP</a>
+    </div>
+    <ul class="nav-links">
+      <li><a href="adminDashboard.php">Dashboard</a></li>
+      <li><a href="registration.php">Register User</a></li>
+      <li><a href="create_course.php">Create Course</a></li>
+      <li><a href="view_courses.php">View Courses</a></li>
+      <li><a href="manage_users.php">Manage Users</a></li>
+      <li><a href="system_settings.php">System Settings</a></li>
+    </ul>
+    <div class="nav-icons">
+      <span class="icon">🔔</span>
+      <span class="icon">⚙️</span>
+      <span class="icon">👤</span>
+      <span class="username"><?php echo htmlspecialchars($_SESSION['full_name']); ?></span>
+      <button class="logout-btn" onclick="confirmLogout()">Log Out</button>
+    </div>
+  </nav>
 
-    <div class="container">
-        <div class="page-header">
-            <div>
-                <h1>User Management</h1>
-                <p style="color: #aaa;">Manage all platform users and permissions</p>
-            </div>
-            <a href="registration.php" class="btn btn-primary">+ Add New User</a>
-        </div>
-
-        <div id="alertMessage" class="alert"></div>
-
-        <!-- Statistics -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-value"><?php echo $stats['total_users']; ?></div>
-                <div class="stat-label">Total Users</div>
-            </div>
-            <div class="stat-card students">
-                <div class="stat-value"><?php echo $stats['total_students']; ?></div>
-                <div class="stat-label">Students</div>
-            </div>
-            <div class="stat-card instructors">
-                <div class="stat-value"><?php echo $stats['total_instructors']; ?></div>
-                <div class="stat-label">Instructors</div>
-            </div>
-            <div class="stat-card admins">
-                <div class="stat-value"><?php echo $stats['total_admins']; ?></div>
-                <div class="stat-label">Admins</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-value"><?php echo $stats['new_users']; ?></div>
-                <div class="stat-label">New (7 days)</div>
-            </div>
-        </div>
-
-        <!-- Filters -->
-        <form class="filters" method="GET">
-            <input type="text" 
-                   name="search" 
-                   placeholder="Search by name or email..." 
-                   value="<?php echo htmlspecialchars($search); ?>">
-            
-            <select name="role" onchange="this.form.submit()">
-                <option value="all" <?php echo $role_filter === 'all' ? 'selected' : ''; ?>>All Roles</option>
-                <option value="student" <?php echo $role_filter === 'student' ? 'selected' : ''; ?>>Students</option>
-                <option value="instructor" <?php echo $role_filter === 'instructor' ? 'selected' : ''; ?>>Instructors</option>
-                <option value="admin" <?php echo $role_filter === 'admin' ? 'selected' : ''; ?>>Admins</option>
-            </select>
-
-            <button type="submit" class="btn btn-search">Search</button>
-            <a href="manage_users.php" class="btn btn-secondary">Clear</a>
-        </form>
-
-        <!-- Users Table -->
-        <div class="users-container">
-            <?php if ($users->num_rows > 0): ?>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Role</th>
-                            <th>Activity</th>
-                            <th>Joined</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php while ($user = $users->fetch_assoc()): ?>
-                            <tr>
-                                <td><strong>#<?php echo $user['id']; ?></strong></td>
-                                <td>
-                                    <?php echo htmlspecialchars($user['full_name']); ?>
-                                    <?php if ($user['first_login'] == 1): ?>
-                                        <span class="first-login-badge">First Login</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?php echo htmlspecialchars($user['email']); ?></td>
-                                <td>
-                                    <span class="role-badge role-<?php echo $user['role']; ?>">
-                                        <?php echo strtoupper($user['role']); ?>
-                                    </span>
-                                </td>
-                                <td>
-                                    <?php if ($user['role'] === 'student'): ?>
-                                        <?php echo $user['submission_count']; ?> submissions
-                                    <?php elseif ($user['role'] === 'instructor'): ?>
-                                        <?php echo $user['assignment_count']; ?> assignments
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
-                                <td>
-                                    <div class="action-btns">
-                                        <button class="btn-action btn-edit" 
-                                                data-user='<?php echo htmlspecialchars(json_encode($user), ENT_QUOTES); ?>'
-                                                onclick="openEditModal(this)">
-                                            ✏️ Edit
-                                        </button>
-                                        <button class="btn-action btn-reset" 
-                                                data-user-id="<?php echo $user['id']; ?>"
-                                                data-user-name="<?php echo htmlspecialchars($user['full_name']); ?>"
-                                                onclick="resetPassword(this)">
-                                            🔑 Reset
-                                        </button>
-                                        <?php if ($user['id'] != $_SESSION['user_id']): ?>
-                                            <button class="btn-action btn-delete" 
-                                                    data-user-id="<?php echo $user['id']; ?>"
-                                                    data-user-name="<?php echo htmlspecialchars($user['full_name']); ?>"
-                                                    onclick="deleteUser(this)">
-                                                🗑️ Delete
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </td>
-                            </tr>
-                        <?php endwhile; ?>
-                    </tbody>
-                </table>
-            <?php else: ?>
-                <div class="empty-state">
-                    <h3>No users found</h3>
-                    <p>Try adjusting your search filters.</p>
-                </div>
-            <?php endif; ?>
-        </div>
+  <div class="container">
+    <div class="page-header">
+      <div>
+        <h2>User Management</h2>
+        <p>Manage all platform users and permissions</p>
+      </div>
+      <a href="registration.php" class="btn-add">+ Add New User</a>
     </div>
 
-    <!-- Edit User Modal -->
-    <div class="modal" id="editModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Edit User</h2>
-                <button class="close-btn" onclick="closeModal()">&times;</button>
-            </div>
-            <form id="editUserForm" onsubmit="submitEditUser(event)">
-                <input type="hidden" id="edit_user_id" name="user_id">
-                
-                <div class="form-group">
-                    <label>Full Name <span style="color: #f44336;">*</span></label>
-                    <input type="text" id="edit_full_name" name="full_name" required>
-                </div>
+    <div class="main-box">
+      <?php if ($success): ?>
+        <div class="alert alert-success"><?php echo $success; ?></div>
+      <?php endif; ?>
 
-                <div class="form-group">
-                    <label>Email <span style="color: #f44336;">*</span></label>
-                    <input type="email" id="edit_email" name="email" required>
-                </div>
+      <?php if ($error): ?>
+        <div class="alert alert-error"><?php echo $error; ?></div>
+      <?php endif; ?>
 
-                <div class="form-group">
-                    <label>Role <span style="color: #f44336;">*</span></label>
-                    <select id="edit_role" name="role" required>
-                        <option value="student">Student</option>
-                        <option value="instructor">Instructor</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Save Changes</button>
-                </div>
-            </form>
+      <div class="stats">
+        <div class="stat-box">
+          <div class="stat-number"><?php echo $stats['total_users']; ?></div>
+          <div class="stat-label">Total Users</div>
         </div>
+        <div class="stat-box">
+          <div class="stat-number"><?php echo $stats['total_students']; ?></div>
+          <div class="stat-label">Students</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number"><?php echo $stats['total_instructors']; ?></div>
+          <div class="stat-label">Instructors</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number"><?php echo $stats['total_admins']; ?></div>
+          <div class="stat-label">Admins</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-number"><?php echo $stats['new_users']; ?></div>
+          <div class="stat-label">New (7 days)</div>
+        </div>
+      </div>
+
+      <!-- Search Form -->
+      <form method="GET" action="manage_users.php" class="search-container">
+        <input type="text" name="search" class="search-input" 
+               placeholder="Search by name or email..." 
+               value="<?php echo htmlspecialchars($search_term); ?>">
+        <select name="role_filter" class="search-select">
+          <option value="all" <?php echo $role_filter === 'all' ? 'selected' : ''; ?>>All Roles</option>
+          <option value="student" <?php echo $role_filter === 'student' ? 'selected' : ''; ?>>Student</option>
+          <option value="instructor" <?php echo $role_filter === 'instructor' ? 'selected' : ''; ?>>Instructor</option>
+          <option value="admin" <?php echo $role_filter === 'admin' ? 'selected' : ''; ?>>Admin</option>
+        </select>
+        <button type="submit" class="btn-search">Search</button>
+        <a href="manage_users.php" class="btn-clear" style="text-decoration: none; display: inline-block; text-align: center;">Clear</a>
+      </form>
+
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Activity</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <?php if ($users_result->num_rows > 0): ?>
+            <?php while ($user = $users_result->fetch_assoc()): ?>
+              <tr>
+                <td>#<?php echo $user['id']; ?></td>
+                <td>
+                  <?php echo htmlspecialchars($user['full_name']); ?>
+                  <?php if ($user['first_login']): ?>
+                    <span class="first-login-badge">First Login</span>
+                  <?php endif; ?>
+                </td>
+                <td><?php echo htmlspecialchars($user['email']); ?></td>
+                <td>
+                  <span class="role-badge role-<?php echo $user['role']; ?>">
+                    <?php echo strtoupper($user['role']); ?>
+                  </span>
+                </td>
+                <td>
+                  <?php 
+                  if ($user['role'] == 'student') {
+                    echo '0 submissions';
+                  } elseif ($user['role'] == 'instructor') {
+                    echo '0 assignments';
+                  } else {
+                    echo '-';
+                  }
+                  ?>
+                </td>
+                <td><?php echo date('M j, Y', strtotime($user['created_at'])); ?></td>
+                <td>
+                  <button class="action-btn btn-edit" 
+                          onclick="openEditModal(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['full_name'], ENT_QUOTES); ?>', '<?php echo $user['role']; ?>')">
+                    ✏️ Edit
+                  </button>
+                  <form method="POST" style="display: inline;">
+                    <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                    <button type="submit" name="reset_password" class="action-btn btn-reset" 
+                            onclick="return confirm('Reset password for this user?')">
+                      🔄 Reset
+                    </button>
+                  </form>
+                  <button class="action-btn btn-delete" 
+                          onclick="confirmDelete(<?php echo $user['id']; ?>, '<?php echo htmlspecialchars($user['full_name'], ENT_QUOTES); ?>')">
+                    🗑️ Delete
+                  </button>
+                </td>
+              </tr>
+            <?php endwhile; ?>
+          <?php else: ?>
+            <tr>
+              <td colspan="7" style="text-align: center; padding: 2rem; color: #94a3b8;">
+                No users found matching your search.
+              </td>
+            </tr>
+          <?php endif; ?>
+        </tbody>
+      </table>
     </div>
+  </div>
 
-    <script>
-        function confirmLogout() {
-            if (confirm("Are you sure you want to log out?")) {
-                window.location.href = 'logout.php';
-            }
-        }
+  <!-- Edit User Modal -->
+  <div id="editModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">Edit User Role</div>
+      <form method="POST" action="manage_users.php" class="modal-body">
+        <input type="hidden" name="user_id" id="edit_user_id">
+        
+        <label>User Name</label>
+        <input type="text" id="edit_user_name" readonly style="background-color: #0f172a; border: 1px solid #334155; padding: 0.8rem; border-radius: 8px; width: 100%; color: #94a3b8; margin-bottom: 1rem;">
+        
+        <label>Select New Role</label>
+        <select name="new_role" id="edit_user_role">
+          <option value="student">Student</option>
+          <option value="instructor">Instructor</option>
+          <option value="admin">Admin</option>
+        </select>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+          <button type="submit" name="edit_user" class="btn-save">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
-        function openEditModal(button) {
-            const user = JSON.parse(button.getAttribute('data-user'));
-            
-            document.getElementById('edit_user_id').value = user.id;
-            document.getElementById('edit_full_name').value = user.full_name;
-            document.getElementById('edit_email').value = user.email;
-            document.getElementById('edit_role').value = user.role;
-            
-            document.getElementById('editModal').classList.add('active');
-        }
+  <script>
+    function confirmLogout() {
+      if (confirm("Are you sure you want to log out?")) {
+        window.location.href = 'logout.php';
+      }
+    }
 
-        function closeModal() {
-            document.getElementById('editModal').classList.remove('active');
-        }
+    function confirmDelete(userId, userName) {
+      if (confirm(`Delete user "${userName}"?\n\nThis action cannot be undone.`)) {
+        window.location.href = '?delete=' + userId;
+      }
+    }
 
-        function submitEditUser(event) {
-            event.preventDefault();
-            
-            const formData = new FormData(event.target);
-            
-            fetch('update_user.php', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert('User updated successfully!', 'success');
-                    closeModal();
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert('Error: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Failed to update user', 'error');
-            });
-        }
+    function openEditModal(userId, userName, currentRole) {
+      document.getElementById('edit_user_id').value = userId;
+      document.getElementById('edit_user_name').value = userName;
+      document.getElementById('edit_user_role').value = currentRole;
+      document.getElementById('editModal').style.display = 'block';
+    }
 
-        function resetPassword(button) {
-            const userId = button.getAttribute('data-user-id');
-            const userName = button.getAttribute('data-user-name');
-            
-            if (!confirm(`Reset password for ${userName}?\n\nA new random password will be generated.`)) {
-                return;
-            }
-            
-            fetch('reset_user_password.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(`Password reset successful!\n\nNew password: ${data.new_password}\n\nPlease save this and send it to the user.`);
-                    showAlert('Password reset successfully!', 'success');
-                } else {
-                    showAlert('Error: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Failed to reset password', 'error');
-            });
-        }
+    function closeEditModal() {
+      document.getElementById('editModal').style.display = 'none';
+    }
 
-        function deleteUser(button) {
-            const userId = button.getAttribute('data-user-id');
-            const userName = button.getAttribute('data-user-name');
-            
-            if (!confirm(`⚠️ DELETE USER: ${userName}?\n\nThis will permanently delete:\n- User account\n- All submissions\n- All assignments\n- All progress data\n\nThis action CANNOT be undone!`)) {
-                return;
-            }
-            
-            if (!confirm('Are you ABSOLUTELY SURE? This is irreversible!')) {
-                return;
-            }
-            
-            fetch('delete_user.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ user_id: userId })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    showAlert('User deleted successfully!', 'success');
-                    setTimeout(() => location.reload(), 1500);
-                } else {
-                    showAlert('Error: ' + data.message, 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Failed to delete user', 'error');
-            });
-        }
-
-        function showAlert(message, type) {
-            const alert = document.getElementById('alertMessage');
-            alert.textContent = message;
-            alert.className = 'alert alert-' + type + ' show';
-            
-            setTimeout(() => {
-                alert.classList.remove('show');
-            }, 5000);
-        }
-
-        window.onclick = function(event) {
-            const modal = document.getElementById('editModal');
-            if (event.target === modal) {
-                closeModal();
-            }
-        }
-    </script>
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+      const modal = document.getElementById('editModal');
+      if (event.target == modal) {
+        closeEditModal();
+      }
+    }
+  </script>
 </body>
 </html>
