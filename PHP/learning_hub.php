@@ -7,256 +7,354 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'student') {
     exit();
 }
 
-$student_id = $_SESSION['user_id'];
 $student_name = $_SESSION['full_name'];
+$student_id = $_SESSION['user_id'];
 
-// Get progress for all lessons
+// Get progress for each lesson
 $progress_query = $conn->prepare("
-    SELECT lesson_id, quiz_score, quiz_total, quiz_passed, attempts, completed_at 
-    FROM lesson_quiz_progress 
+    SELECT lesson_id, COUNT(*) as completed
+    FROM lesson_progress
     WHERE student_id = ?
+    GROUP BY lesson_id
 ");
 $progress_query->bind_param("i", $student_id);
 $progress_query->execute();
 $progress_result = $progress_query->get_result();
-
 $progress_data = [];
 while ($row = $progress_result->fetch_assoc()) {
-    $progress_data[$row['lesson_id']] = $row;
+    $progress_data[$row['lesson_id']] = $row['completed'];
 }
-
-// Calculate completion status with proper checks
-$html_passed = isset($progress_data[1]) && isset($progress_data[1]['quiz_passed']) && $progress_data[1]['quiz_passed'];
-$css_passed = isset($progress_data[2]) && isset($progress_data[2]['quiz_passed']) && $progress_data[2]['quiz_passed'];
-$js_passed = isset($progress_data[3]) && isset($progress_data[3]['quiz_passed']) && $progress_data[3]['quiz_passed'];
-$total_completed = ($html_passed ? 1 : 0) + ($css_passed ? 1 : 0) + ($js_passed ? 1 : 0);
-$overall_progress = ($total_completed / 3) * 100;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Learning Hub | Code Lab @ HELP</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: #2e3f54; color: white; }
-        .navbar { background-color: #111; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
-        .logo { color: white; font-weight: bold; font-size: 1.2rem; }
-        .logo a { color: white; text-decoration: none; }
-        .nav-links { list-style: none; display: flex; gap: 1.5rem; }
-        .nav-links li a { color: white; text-decoration: none; }
-        .logout-btn { background-color: #2e3f54; color: white; border: none; padding: 0.4rem 1rem; border-radius: 5px; cursor: pointer; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 2rem; }
-        .page-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 3rem; border-radius: 12px; margin-bottom: 3rem; text-align: center; }
-        .page-header h1 { font-size: 3rem; margin-bottom: 1rem; }
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 3rem; }
-        .stat-card { background-color: #1a2332; padding: 2rem; border-radius: 12px; text-align: center; border: 2px solid #667eea; }
-        .stat-number { font-size: 3rem; font-weight: bold; color: #667eea; margin-bottom: 0.5rem; }
-        .stat-label { color: #aaa; font-size: 0.9rem; }
-        .lessons-grid { display: grid; gap: 2rem; }
-        .lesson-card { background-color: #1a2332; padding: 2rem; border-radius: 12px; display: flex; gap: 2rem; align-items: center; border-left: 5px solid #667eea; transition: all 0.3s; }
-        .lesson-card:hover { transform: translateX(10px); box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3); }
-        .lesson-icon { font-size: 4rem; min-width: 80px; text-align: center; }
-        .lesson-content { flex: 1; }
-        .lesson-title { font-size: 1.8rem; margin-bottom: 0.5rem; }
-        .lesson-description { color: #aaa; margin-bottom: 1rem; }
-        .lesson-meta { display: flex; gap: 2rem; margin-top: 1rem; font-size: 0.9rem; color: #888; }
-        .lesson-actions { display: flex; gap: 1rem; flex-wrap: wrap; }
-        .btn { padding: 0.8rem 1.5rem; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.3s; }
-        .btn-primary { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; }
-        .btn-success { background-color: #4caf50; color: white; }
-        .btn-secondary { background-color: #666; color: white; }
-        .btn:hover { transform: translateY(-2px); }
-        .status-badge { padding: 0.4rem 1rem; border-radius: 20px; font-size: 0.85rem; font-weight: bold; display: inline-block; }
-        .badge-completed { background-color: #4caf50; color: white; }
-        .badge-in-progress { background-color: #ff9800; color: white; }
-        .badge-locked { background-color: #666; color: white; }
-        .badge-not-started { background-color: #333; color: #aaa; }
-        .celebration { text-align: center; padding: 3rem; background-color: #1a2332; border-radius: 12px; margin-top: 2rem; }
-        .celebration h2 { color: #4caf50; font-size: 2.5rem; margin-bottom: 1rem; }
-    </style>
+  <meta charset="UTF-8" />
+  <title>Learning Hub - Code Lab @ HELP</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      color: #fff;
+    }
+    .navbar {
+      background-color: rgba(15, 20, 25, 0.95);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+    }
+    .logo a {
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.3rem;
+    }
+    .nav-links {
+      list-style: none;
+      display: flex;
+      gap: 0.5rem;
+    }
+    .nav-links li a {
+      color: #9ca3af;
+      text-decoration: none;
+      padding: 0.6rem 1rem;
+      border-radius: 8px;
+      transition: all 0.3s;
+    }
+    .nav-links li a.active {
+      background-color: rgba(59, 130, 246, 0.2);
+      color: white;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+    .page-header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+    .page-header h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1rem;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+    }
+    .page-header p {
+      font-size: 1.2rem;
+      opacity: 0.9;
+    }
+    .learning-path {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 3rem;
+      margin-bottom: 3rem;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+    }
+    .path-title {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+    .lesson-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+    }
+    .lesson-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 16px;
+      padding: 2rem;
+      color: #1a202c;
+      cursor: pointer;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .lesson-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+    }
+    .lesson-card:hover {
+      transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+    .lesson-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+    .lesson-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      color: #2d3748;
+    }
+    .lesson-description {
+      color: #718096;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+    .lesson-progress {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .progress-bar {
+      flex: 1;
+      height: 8px;
+      background-color: #e2e8f0;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #48bb78, #38a169);
+      transition: width 0.5s;
+    }
+    .lesson-stats {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.9rem;
+      color: #718096;
+    }
+    .btn-start {
+      width: 100%;
+      padding: 1rem;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: all 0.3s;
+    }
+    .btn-start:hover {
+      transform: scale(1.05);
+      box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+    }
+    .locked {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    .locked::after {
+      content: '🔒';
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      font-size: 2rem;
+    }
+  </style>
 </head>
 <body>
-    <nav class="navbar">
-        <div class="logo"><a href="studentDashboard.php">Code Lab @ HELP</a></div>
-        <ul class="nav-links">
-            <li><a href="studentDashboard.php">Dashboard</a></li>
-            <li><a href="browser.php">Browse</a></li>
-            <li><a href="learning_hub.php">Learning Hub</a></li>
-        </ul>
-        <div>
-            <span><?php echo htmlspecialchars($student_name); ?></span>
-            <button class="logout-btn" onclick="window.location.href='logout.php'">Log Out</button>
-        </div>
-    </nav>
-
-    <div class="container">
-        <div class="page-header">
-            <h1>🎓 Your Learning Journey</h1>
-            <p>Master web development step by step!</p>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-number"><?php echo $total_completed; ?>/3</div>
-                <div class="stat-label">Lessons Completed</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number"><?php echo round($overall_progress); ?>%</div>
-                <div class="stat-label">Overall Progress</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number">
-                    <?php 
-                    $total_score = 0;
-                    $total_possible = 0;
-                    foreach ($progress_data as $prog) {
-                        if (isset($prog['quiz_passed']) && $prog['quiz_passed']) {
-                            $total_score += $prog['quiz_score'];
-                            $total_possible += $prog['quiz_total'];
-                        }
-                    }
-                    echo $total_possible > 0 ? round(($total_score / $total_possible) * 100) : 0;
-                    ?>%
-                </div>
-                <div class="stat-label">Average Quiz Score</div>
-            </div>
-        </div>
-
-        <div class="lessons-grid">
-            <!-- HTML Lesson -->
-            <div class="lesson-card" style="border-left-color: #667eea;">
-                <div class="lesson-icon">🌐</div>
-                <div class="lesson-content">
-                    <div class="lesson-title">HTML Basics</div>
-                    <div class="lesson-description">Learn the foundation of web development - structure your web pages!</div>
-                    <div style="margin: 1rem 0;">
-                        <?php if ($html_passed): ?>
-                            <span class="status-badge badge-completed">✓ Completed</span>
-                            <?php if (isset($progress_data[1])): ?>
-                                <span style="margin-left: 1rem; color: #4caf50;">
-                                    Score: <?php echo $progress_data[1]['quiz_score']; ?>/<?php echo $progress_data[1]['quiz_total']; ?>
-                                </span>
-                            <?php endif; ?>
-                        <?php elseif (isset($progress_data[1])): ?>
-                            <span class="status-badge badge-in-progress">📚 In Progress</span>
-                        <?php else: ?>
-                            <span class="status-badge badge-not-started">Not Started</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="lesson-meta">
-                        <span>⏱️ 45 minutes</span>
-                        <span>📊 Difficulty: Beginner</span>
-                        <?php if (isset($progress_data[1])): ?>
-                            <span>🔄 Attempts: <?php echo $progress_data[1]['attempts']; ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="lesson-actions" style="margin-top: 1.5rem;">
-                        <a href="lesson_html_NEW.php" class="btn btn-primary">📖 Start Lesson</a>
-                        <?php if (isset($progress_data[1])): ?>
-                            <a href="quiz_html_NEW.php" class="btn btn-secondary">📝 Take Quiz</a>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- CSS Lesson -->
-            <div class="lesson-card" style="border-left-color: #f093fb;">
-                <div class="lesson-icon">🎨</div>
-                <div class="lesson-content">
-                    <div class="lesson-title">CSS Styling</div>
-                    <div class="lesson-description">Make websites beautiful with colors, layouts, and animations!</div>
-                    <div style="margin: 1rem 0;">
-                        <?php if (!$html_passed): ?>
-                            <span class="status-badge badge-locked">🔒 Locked - Complete HTML first</span>
-                        <?php elseif ($css_passed): ?>
-                            <span class="status-badge badge-completed">✓ Completed</span>
-                            <?php if (isset($progress_data[2])): ?>
-                                <span style="margin-left: 1rem; color: #4caf50;">
-                                    Score: <?php echo $progress_data[2]['quiz_score']; ?>/<?php echo $progress_data[2]['quiz_total']; ?>
-                                </span>
-                            <?php endif; ?>
-                        <?php elseif (isset($progress_data[2])): ?>
-                            <span class="status-badge badge-in-progress">📚 In Progress</span>
-                        <?php else: ?>
-                            <span class="status-badge badge-not-started">Not Started</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="lesson-meta">
-                        <span>⏱️ 50 minutes</span>
-                        <span>📊 Difficulty: Beginner</span>
-                        <?php if (isset($progress_data[2])): ?>
-                            <span>🔄 Attempts: <?php echo $progress_data[2]['attempts']; ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="lesson-actions" style="margin-top: 1.5rem;">
-                        <?php if ($html_passed): ?>
-                            <a href="lesson_css_NEW.php" class="btn btn-primary">📖 Start Lesson</a>
-                            <?php if (isset($progress_data[2])): ?>
-                                <a href="quiz_css_NEW.php" class="btn btn-secondary">📝 Take Quiz</a>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <button class="btn btn-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">🔒 Locked</button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-
-            <!-- JavaScript Lesson -->
-            <div class="lesson-card" style="border-left-color: #f7971e;">
-                <div class="lesson-icon">⚡</div>
-                <div class="lesson-content">
-                    <div class="lesson-title">JavaScript Fundamentals</div>
-                    <div class="lesson-description">Bring your websites to life with interactivity and programming!</div>
-                    <div style="margin: 1rem 0;">
-                        <?php if (!$css_passed): ?>
-                            <span class="status-badge badge-locked">🔒 Locked - Complete CSS first</span>
-                        <?php elseif ($js_passed): ?>
-                            <span class="status-badge badge-completed">✓ Completed</span>
-                            <?php if (isset($progress_data[3])): ?>
-                                <span style="margin-left: 1rem; color: #4caf50;">
-                                    Score: <?php echo $progress_data[3]['quiz_score']; ?>/<?php echo $progress_data[3]['quiz_total']; ?>
-                                </span>
-                            <?php endif; ?>
-                        <?php elseif (isset($progress_data[3])): ?>
-                            <span class="status-badge badge-in-progress">📚 In Progress</span>
-                        <?php else: ?>
-                            <span class="status-badge badge-not-started">Not Started</span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="lesson-meta">
-                        <span>⏱️ 60 minutes</span>
-                        <span>📊 Difficulty: Intermediate</span>
-                        <?php if (isset($progress_data[3])): ?>
-                            <span>🔄 Attempts: <?php echo $progress_data[3]['attempts']; ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <div class="lesson-actions" style="margin-top: 1.5rem;">
-                        <?php if ($css_passed): ?>
-                            <a href="lesson_javascript_NEW.php" class="btn btn-primary">📖 Start Lesson</a>
-                            <?php if (isset($progress_data[3])): ?>
-                                <a href="quiz_javascript_NEW.php" class="btn btn-secondary">📝 Take Quiz</a>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <button class="btn btn-secondary" disabled style="opacity: 0.5; cursor: not-allowed;">🔒 Locked</button>
-                        <?php endif; ?>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <?php if ($total_completed === 3): ?>
-            <div class="celebration">
-                <h2>🎉 Congratulations!</h2>
-                <p style="font-size: 1.3rem; color: #ddd; margin-bottom: 2rem;">
-                    You've completed all three foundational web development lessons!<br>
-                    You're ready to build amazing websites! 🚀
-                </p>
-                <div style="font-size: 4rem; margin: 2rem 0;">🏆</div>
-                <p style="color: #aaa;">Keep practicing and exploring more advanced topics!</p>
-            </div>
-        <?php endif; ?>
+  <nav class="navbar">
+    <div class="logo">
+      <a href="studentDashboard.php">Code Lab @ HELP</a>
     </div>
+    <ul class="nav-links">
+      <li><a href="studentDashboard.php">Dashboard</a></li>
+      <li><a href="student_browse.php">Browse</a></li>
+      <li><a href="learning_hub.php" class="active">Learning Hub</a></li>
+      <li><a href="student_assignments.php">My Assignments</a></li>
+      <li><a href="student_progress.php">Progress</a></li>
+    </ul>
+    <div style="font-weight: 600;"><?php echo htmlspecialchars($student_name); ?></div>
+  </nav>
+
+  <div class="container">
+    <div class="page-header">
+      <h1>🎓 Interactive Learning Hub</h1>
+      <p>Learn to code step-by-step with interactive lessons and quizzes</p>
+    </div>
+
+    <!-- HTML Path -->
+    <div class="learning-path">
+      <div class="path-title">
+        <span style="font-size: 3rem;">🎨</span>
+        <span>HTML - Website Structure</span>
+      </div>
+      <div class="lesson-cards">
+        <div class="lesson-card" onclick="window.location.href='learn_interactive.php?topic=html&level=1'">
+          <div class="lesson-icon">📝</div>
+          <div class="lesson-title">HTML Basics</div>
+          <div class="lesson-description">
+            Learn the fundamental building blocks of web pages
+          </div>
+          <div class="lesson-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: <?php echo isset($progress_data[1]) ? min(100, $progress_data[1] * 20) : 0; ?>%"></div>
+            </div>
+            <span><?php echo isset($progress_data[1]) ? $progress_data[1] : 0; ?>/5</span>
+          </div>
+          <div class="lesson-stats">
+            <span>⏱️ 15 mins</span>
+            <span>⭐ Beginner</span>
+          </div>
+          <button class="btn-start">Start Learning →</button>
+        </div>
+
+        <div class="lesson-card" onclick="window.location.href='learn_interactive.php?topic=html&level=2'">
+          <div class="lesson-icon">🏗️</div>
+          <div class="lesson-title">HTML Elements</div>
+          <div class="lesson-description">
+            Master headings, paragraphs, links, and images
+          </div>
+          <div class="lesson-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 0%"></div>
+            </div>
+            <span>0/5</span>
+          </div>
+          <div class="lesson-stats">
+            <span>⏱️ 20 mins</span>
+            <span>⭐ Beginner</span>
+          </div>
+          <button class="btn-start">Start Learning →</button>
+        </div>
+
+        <div class="lesson-card" onclick="window.location.href='learn_interactive.php?topic=html&level=3'">
+          <div class="lesson-icon">📋</div>
+          <div class="lesson-title">HTML Forms</div>
+          <div class="lesson-description">
+            Create interactive forms with input fields and buttons
+          </div>
+          <div class="lesson-progress">
+            <div class="progress-bar">
+              <div class="progress-fill" style="width: 0%"></div>
+            </div>
+            <span>0/5</span>
+          </div>
+          <div class="lesson-stats">
+            <span>⏱️ 25 mins</span>
+            <span>⭐ Intermediate</span>
+          </div>
+          <button class="btn-start">Start Learning →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- CSS Path -->
+    <div class="learning-path">
+      <div class="path-title">
+        <span style="font-size: 3rem;">🎨</span>
+        <span>CSS - Styling & Design</span>
+      </div>
+      <div class="lesson-cards">
+        <div class="lesson-card" onclick="window.location.href='learn_interactive.php?topic=css&level=1'">
+          <div class="lesson-icon">🎨</div>
+          <div class="lesson-title">CSS Basics</div>
+          <div class="lesson-description">
+            Learn to style your web pages with colors and fonts
+          </div>
+          <div class="lesson-stats">
+            <span>⏱️ 20 mins</span>
+            <span>⭐ Beginner</span>
+          </div>
+          <button class="btn-start">Start Learning →</button>
+        </div>
+
+        <div class="lesson-card" onclick="window.location.href='learn_interactive.php?topic=css&level=2'">
+          <div class="lesson-icon">📦</div>
+          <div class="lesson-title">CSS Layout</div>
+          <div class="lesson-description">
+            Master flexbox and grid for page layouts
+          </div>
+          <div class="lesson-stats">
+            <span>⏱️ 30 mins</span>
+            <span>⭐ Intermediate</span>
+          </div>
+          <button class="btn-start">Start Learning →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JavaScript Path -->
+    <div class="learning-path">
+      <div class="path-title">
+        <span style="font-size: 3rem;">⚡</span>
+        <span>JavaScript - Interactivity</span>
+      </div>
+      <div class="lesson-cards">
+        <div class="lesson-card" onclick="window.location.href='learn_interactive.php?topic=javascript&level=1'">
+          <div class="lesson-icon">⚡</div>
+          <div class="lesson-title">JavaScript Basics</div>
+          <div class="lesson-description">
+            Learn variables, functions, and basic programming
+          </div>
+          <div class="lesson-stats">
+            <span>⏱️ 25 mins</span>
+            <span>⭐ Beginner</span>
+          </div>
+          <button class="btn-start">Start Learning →</button>
+        </div>
+
+        <div class="lesson-card" onclick="window.location.href='learn_interactive.php?topic=javascript&level=2'">
+          <div class="lesson-icon">🎯</div>
+          <div class="lesson-title">DOM Manipulation</div>
+          <div class="lesson-description">
+            Make your websites interactive and dynamic
+          </div>
+          <div class="lesson-stats">
+            <span>⏱️ 30 mins</span>
+            <span>⭐ Intermediate</span>
+          </div>
+          <button class="btn-start">Start Learning →</button>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
