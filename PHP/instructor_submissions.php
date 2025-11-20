@@ -230,6 +230,7 @@ $submissions = $submissions_query->get_result();
       border-radius: 16px;
       border: 2px dashed #334155;
     }
+    .logout-btn{background-color:#1e293b;color:white;border:1px solid #334155;padding:.5rem 1.2rem;cursor:pointer;border-radius:6px}
   </style>
 </head>
 <body>
@@ -244,8 +245,9 @@ $submissions = $submissions_query->get_result();
       <li><a href="instructor_assignments.php">Assignments</a></li>
       <li><a href="instructor_submissions.php" class="active">Submissions</a></li>
     </ul>
-    <div style="color: white; font-weight: 600;"><?php echo htmlspecialchars($instructor_name); ?></div>
-  </nav>
+    <div class="nav-icons"><span class="icon">🔔</span><span class="icon">⚙️</span><span class="icon">👤</span>
+<span class="username"><?php echo htmlspecialchars($instructor_name);?></span>
+<button class="logout-btn" onclick="if(confirm('Log out?'))location.href='logout.php'">Log Out</button></div></nav>
 
   <div class="container">
     <h2>📝 Review Submissions</h2>

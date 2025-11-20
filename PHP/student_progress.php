@@ -202,6 +202,8 @@ $completion_rate = $stats['total_assignments'] > 0
       color: #94a3b8;
       font-size: 0.9rem;
     }
+    
+.logout-btn{background-color:#1e293b;color:white;border:1px solid #334155;padding:.5rem 1.2rem;cursor:pointer;border-radius:6px}
   </style>
 </head>
 <body>
@@ -216,8 +218,9 @@ $completion_rate = $stats['total_assignments'] > 0
       <li><a href="student_assignments.php">My Assignments</a></li>
       <li><a href="student_progress.php" class="active">Progress</a></li>
     </ul>
-    <div style="color: white; font-weight: 600;"><?php echo htmlspecialchars($student_name); ?></div>
-  </nav>
+<div class="nav-icons"><span class="icon">🔔</span><span class="icon">⚙️</span><span class="icon">👤</span>
+<span class="username"><?php echo htmlspecialchars($student_name);?></span>
+<button class="logout-btn" onclick="if(confirm('Log out?'))location.href='logout.php'">Log Out</button></div></nav>
 
   <div class="container">
     <h2>📊 My Progress</h2>

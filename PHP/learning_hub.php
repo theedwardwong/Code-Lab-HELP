@@ -197,6 +197,9 @@ while ($row = $progress_result->fetch_assoc()) {
       right: 1rem;
       font-size: 2rem;
     }
+    .logout-btn{background-color:#1e293b;color:white;border:1px solid #334155;padding:.5rem 1.2rem;cursor:pointer;border-radius:6px}
+
+
   </style>
 </head>
 <body>
@@ -211,7 +214,10 @@ while ($row = $progress_result->fetch_assoc()) {
       <li><a href="student_assignments.php">My Assignments</a></li>
       <li><a href="student_progress.php">Progress</a></li>
     </ul>
-    <div style="font-weight: 600;"><?php echo htmlspecialchars($student_name); ?></div>
+    
+    <div class="nav-icons"><span class="icon">🔔</span><span class="icon">⚙️</span><span class="icon">👤</span>
+<span class="username"><?php echo htmlspecialchars($student_name);?></span>
+<button class="logout-btn" onclick="if(confirm('Log out?'))location.href='logout.php'">Log Out</button></div></nav>
   </nav>
 
   <div class="container">

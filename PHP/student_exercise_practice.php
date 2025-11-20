@@ -46,6 +46,7 @@ if (!empty($exercise['hints'])) {
 // Handle code submission
 $feedback = '';
 $success = false;
+$show_practice_tab = false; // NEW: Flag to show practice tab
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_code'])) {
     $submitted_code = $_POST['code'];
@@ -64,8 +65,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_code'])) {
         
         $success = true;
         $feedback = "Great job! Your code has been submitted successfully.";
+        $show_practice_tab = true; // NEW: Stay on practice tab
     } else {
         $feedback = "Please write some code before submitting.";
+        $show_practice_tab = true; // NEW: Stay on practice tab
     }
 }
 
@@ -302,6 +305,7 @@ $assignment = $assignment_result->num_rows > 0 ? $assignment_result->fetch_assoc
       min-height: 200px;
       text-align: center;
     }
+    .logout-btn{background-color:#1e293b;color:white;border:1px solid #334155;padding:.5rem 1.2rem;cursor:pointer;border-radius:6px}
   </style>
 </head>
 <body>
@@ -316,8 +320,9 @@ $assignment = $assignment_result->num_rows > 0 ? $assignment_result->fetch_assoc
       <li><a href="student_assignments.php">My Assignments</a></li>
       <li><a href="student_progress.php">Progress</a></li>
     </ul>
-    <div style="color: white; font-weight: 600;"><?php echo htmlspecialchars($student_name); ?></div>
-  </nav>
+    <div class="nav-icons"><span class="icon">🔔</span><span class="icon">⚙️</span><span class="icon">👤</span>
+  <span class="username"><?php echo htmlspecialchars($student_name);?></span>
+  <button class="logout-btn" onclick="if(confirm('Log out?'))location.href='logout.php'">Log Out</button></div></nav>
 
   <div class="container">
     <a href="student_lesson_view.php?id=<?php echo $exercise['lesson_id']; ?>" class="back-btn">
@@ -337,13 +342,13 @@ $assignment = $assignment_result->num_rows > 0 ? $assignment_result->fetch_assoc
 
     <!-- Tabs -->
     <div class="tabs">
-      <button class="tab active" onclick="showTab('learn')">📚 Learn</button>
-      <button class="tab" onclick="showTab('practice')">💻 Practice</button>
+      <button class="tab <?php echo !$show_practice_tab ? 'active' : ''; ?>" onclick="showTab('learn')">📚 Learn</button>
+      <button class="tab <?php echo $show_practice_tab ? 'active' : ''; ?>" onclick="showTab('practice')">💻 Practice</button>
       <button class="tab" onclick="showTab('solution')">✅ Solution</button>
     </div>
 
     <!-- Learn Tab -->
-    <div class="tab-content active" id="learn">
+    <div class="tab-content <?php echo !$show_practice_tab ? 'active' : ''; ?>" id="learn">
       <div class="content-section">
         <h2 class="section-title">📺 Video Tutorial</h2>
         <div class="video-container">
@@ -377,7 +382,7 @@ $assignment = $assignment_result->num_rows > 0 ? $assignment_result->fetch_assoc
     </div>
 
     <!-- Practice Tab -->
-    <div class="tab-content" id="practice">
+    <div class="tab-content <?php echo $show_practice_tab ? 'active' : ''; ?>" id="practice">
       <?php if ($feedback): ?>
         <div class="feedback <?php echo $success ? 'success' : 'error'; ?>">
           <?php echo htmlspecialchars($feedback); ?>
@@ -459,6 +464,14 @@ $assignment = $assignment_result->num_rows > 0 ? $assignment_result->fetch_assoc
       
       hintBox.classList.add('show');
     }
+
+    // NEW: Auto-open practice tab if form was submitted
+    <?php if ($show_practice_tab): ?>
+    document.addEventListener('DOMContentLoaded', function() {
+      showTab('practice');
+      document.querySelectorAll('.tab')[1].classList.add('active');
+    });
+    <?php endif; ?>
   </script>
 </body>
 </html>
